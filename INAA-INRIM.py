@@ -6996,7 +6996,7 @@ class MeasurementSampleManagementWindow:
         self.ctype_CB.grid(row=0, column=1, padx=5)
 
         logo_composition = tk.PhotoImage(data=gui_things.PL_list)
-        B_changecomposition = gui_things.Button(compositionframe, image=logo_composition, hint='manage measurement sample composition', hint_destination=M.hintlabel, command=lambda : self.modify_composition(M))
+        B_changecomposition = gui_things.Button(compositionframe, image=logo_composition, hint='manage measurement sample composition', hint_destination=hintlabel, command=lambda : self.modify_composition(M))
         B_changecomposition.grid(row=0, column=2, padx=5)
         B_changecomposition.image = logo_composition
 
@@ -7274,7 +7274,7 @@ class MeasurementSampleManagementWindow:
         self.index_list = 0
 
         mframe = tk.Frame(self.composition_subwindow)
-        hintlabel = tk.Label(mframe, text='Im here', anchor=tk.W)
+        hintlabel = tk.Label(mframe, text='', anchor=tk.W)
         header = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='pipetted solutions'), relief='solid', bd=2, padx=4, pady=4)
         self.pipsLB = gui_things.ScrollableListbox(header, width=30, height=12, data=self._to_text(), font=('Courier', 10))
         self.pipsLB.pack(anchor=tk.NW, fill=tk.BOTH, expand=True)
