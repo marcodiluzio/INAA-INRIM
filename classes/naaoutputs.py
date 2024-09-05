@@ -1135,11 +1135,11 @@ class SingleBudget:
         worksheet.write(23, 11+56, 'DoF')
 
         if budget.EF._model() == 'all_relative_direct':
-            _model = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH27-BH29))) * ((1 + (BH31+BH34)/(BH27-BH29)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            _model = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH27-BH29))) * ((1 + (BH31+BH34)/(BH27-BH29)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         elif budget.EF._model() == 'same_distance':
-            _model = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH27-BH32))) * ((1 + (BH31+BH34)/(BH27-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            _model = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH27-BH32))) * ((1 + (BH31+BH34)/(BH27-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         elif budget.EF._model() == 'different_distance':
-            _model = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH30-BH32))) * ((1 + (BH31+BH34)/(BH30-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            _model = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH30-BH32))) * ((1 + (BH31+BH34)/(BH30-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         else:
             _model = 'ERROR'
 
@@ -1284,11 +1284,11 @@ class SingleBudget:
         worksheet.write(42, 2+56, '=C9')
 
         if budget.EF._model() == 'all_relative_direct':
-            fml = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH27-BH29))) * ((1 + (BH31+BH34)/(BH27-BH29)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            fml = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH27-BH29))) * ((1 + (BH31+BH34)/(BH27-BH29)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         elif budget.EF._model() == 'same_distance':
-            fml = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH27-BH32))) * ((1 + (BH31+BH34)/(BH27-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            fml = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH27-BH32))) * ((1 + (BH31+BH34)/(BH27-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         elif budget.EF._model() == 'different_distance':
-            fml = '=BH25*BH26 * ((1+BH28/(BH27-BH29)) / (1+BH31/(BH30-BH32))) * ((1 + (BH31+BH34)/(BH30-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
+            fml = '=BH25*BH26 * ((1+BH31/(BH27-BH29)) / (1+BH28/(BH30-BH32))) * ((1 + (BH31+BH34)/(BH30-BH32)) / (1 + (BH28+BH33)/(BH27-BH29))) * ((1-EXP(-BH35*BH33*BH36/1000))/(BH35*BH33*BH36)) / ((1-EXP(-BH37*BH34*BH38/1000))/(BH37*BH34*BH38)) * BH39'
         else:
             fml = 'ERROR'
         worksheet.write(42, 3+56, fml, self.font_datum)

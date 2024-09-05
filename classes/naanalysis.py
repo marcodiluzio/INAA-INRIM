@@ -2396,7 +2396,7 @@ class Efficiency(PartialBudget):
 	def solve_fullrelative(self):
 
 		def _best_estimate(pms):
-			return pms[0] * pms[1] * ((1 + pms[3] / (pms[2] - pms[4])) / (1 + pms[6] / (pms[2] - pms[4]))) * ((1 + (pms[6] + pms[9]) / (pms[2] - pms[4])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
+			return pms[0] * pms[1] * ((1 + pms[6] / (pms[2] - pms[4])) / (1 + pms[3] / (pms[2] - pms[4]))) * ((1 + (pms[6] + pms[9]) / (pms[2] - pms[4])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
 
 		pms = [item.get_value() for item in self.parameters]
 
@@ -2438,7 +2438,7 @@ class Efficiency(PartialBudget):
 	def solve_samedistance(self):
 
 		def _best_estimate(pms):
-			return pms[0] * pms[1] * ((1 + pms[3] / (pms[2] - pms[4])) / (1 + pms[6] / (pms[2] - pms[7]))) * ((1 + (pms[6] + pms[9]) / (pms[2] - pms[7])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
+			return pms[0] * pms[1] * ((1 + pms[6] / (pms[2] - pms[4])) / (1 + pms[3] / (pms[2] - pms[7]))) * ((1 + (pms[6] + pms[9]) / (pms[2] - pms[7])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
 
 		pms = [item.get_value() for item in self.parameters]
 
@@ -2480,7 +2480,7 @@ class Efficiency(PartialBudget):
 	def solve_nosamedistance(self):
 
 		def _best_estimate(pms):
-			return pms[0] * pms[1] * ((1 + pms[3] / (pms[2] - pms[4])) / (1 + pms[6] / (pms[5] - pms[7]))) * ((1 + (pms[6] + pms[9]) / (pms[5] - pms[7])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
+			return pms[0] * pms[1] * ((1 + pms[6] / (pms[2] - pms[4])) / (1 + pms[3] / (pms[5] - pms[7]))) * ((1 + (pms[6] + pms[9]) / (pms[5] - pms[7])) / (1 + (pms[3] + pms[8]) / (pms[2] - pms[4]))) * ((1 - np.exp(-pms[10] * pms[8] * pms[11] / 1000)) / (pms[10] * pms[8] * pms[11])) / ((1 - np.exp(-pms[12] * pms[9] * pms[13] / 1000)) / (pms[12] * pms[9] * pms[13])) * pms[14]
 
 		pms = [item.get_value() for item in self.parameters]
 
