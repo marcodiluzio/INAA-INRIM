@@ -24,7 +24,7 @@ import classes.naanalysis as naaobject
 class MainWindow:
     # only one subwindow open at a time
     def __init__(self, M, settings, home):
-        __version__ = 3.0
+        __version__ = 3.1
         self.main_window = tk.Frame(M)
         self.main_window.pack(anchor=tk.NW, padx=5, pady=5)
         M.resizable(False, False)
@@ -67,7 +67,7 @@ class UsefulUnusefulInformationWindow:
         parent.title('INAA-INRIM information')
         parent.resizable(False, False)
 
-        welcome_info = 'INAA-INRIM version 3.0\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
+        welcome_info = 'INAA-INRIM version 3.1\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
 
         contact_info = 'Inquiries can be sent to the following email addresses\n\nm.diluzio@inrim.it\ng.dagostino@inrim.it'
 
@@ -82,7 +82,7 @@ class UsefulUnusefulInformationWindow:
         """REFERENCE TO PREVIOUS VERSIONS\n\n# Di Luzio et al; "The k0-INRIM software version 2.0: presentation and an analysis vademecum"\nJournal of Radioanalytical and Nuclear Chemistry (2023)\nDOI: 10.1007/s10967-022-08622-5\n\nD'Agostino et al; "Erratum: The k0-INRIM software: A tool to compile uncertainty budgets in neutron activation analysis based on k0-standardisation"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab57c8"""
         ])
 
-        version_info = '\n\n'.join(['# version 3.0 (2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
+        version_info = '\n\n'.join(['# version 3.1 (2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
 
         self._infodict = {'welcome' : welcome_info, 'references' : reference_info, 'license' : license_info, 'versions' : version_info, 'contacts' : contact_info}
         self.labelwidget = tk.Label(parent, text='')
@@ -130,7 +130,7 @@ class WelcomeWindow:
         B_infos = gui_things.Button(first_line, image=logo_infos, hint='useful and unuseful info', hint_destination=M.hintlabel, command=lambda : self.go_to_unusefulinformation(parent, M))
         B_infos.pack(side=tk.LEFT, anchor=tk.NW)
         B_infos.image = logo_infos
-        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.0, 2024', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
+        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.1, 2024', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
         button_header = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='settings & data'), relief='solid', bd=2, padx=4, pady=4)
         first_line.pack(anchor=tk.NW, fill=tk.X, expand=True)
 
