@@ -24,7 +24,7 @@ import classes.naanalysis as naaobject
 class MainWindow:
     # only one subwindow open at a time
     def __init__(self, M, settings, home):
-        __version__ = 3.1
+        __version__ = 3.2
         self.main_window = tk.Frame(M)
         self.main_window.pack(anchor=tk.NW, padx=5, pady=5)
         M.resizable(False, False)
@@ -67,7 +67,7 @@ class UsefulUnusefulInformationWindow:
         parent.title('INAA-INRIM information')
         parent.resizable(False, False)
 
-        welcome_info = 'INAA-INRIM version 3.1\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
+        welcome_info = 'INAA-INRIM version 3.2\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
 
         contact_info = 'Inquiries can be sent to the following email addresses\n\nm.diluzio@inrim.it\ng.dagostino@inrim.it'
 
@@ -75,14 +75,14 @@ class UsefulUnusefulInformationWindow:
 
         reference_info = '\n\n'.join(['References to the various publications related to the INAA-INRIM software',
 
-        """MEASUREMENT MODEL AND UNCERTAINTY EVALUATION\n\n# D'Agostino et al; "Development and application of a comprehensive measurement equation for the direct comaprator standardization method of Instrumental Neutron Activation Analysis"\nSubmitted to: Spectrochimica Acta Part B (2024)\nDOI: XX.XXXX/XXXXXX-XXX-XXXXX-X\n\n# Di Luzio et al; "Developments of the k0-NAA measurement model implemented in k0-INRIM software"\nJournal of Radioanalytical and Nuclear Chemistry (2022)\nDOI: 10.1007/s10967-022-08476-x\n\n# Di Luzio et al; "A method to deal with correlations affecting γ counting efficiencies in analytical chemistry measurements performed by k0-NAA"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab7ca8\n\n# D'Agostino et al; "An uncertainty spreadsheet for the k0-standardisation method in Neutron Activation Analysis"\nJournal of Radioanalytical and Nuclear Chemistry (2018)\nDOI: 10.1007/s10967-018-6094-8""",
+        """MEASUREMENT MODEL AND UNCERTAINTY EVALUATION\n\n# D'Agostino et al; "Development and application of a comprehensive measurement equation for the direct comparator standardization method of Instrumental Neutron Activation Analysis"\nSubmitted to: Spectrochimica Acta Part B (2024)\nDOI: 10.1016/j.sab.2024.106997\n\n# Di Luzio et al; "Developments of the k0-NAA measurement model implemented in k0-INRIM software"\nJournal of Radioanalytical and Nuclear Chemistry (2022)\nDOI: 10.1007/s10967-022-08476-x\n\n# Di Luzio et al; "A method to deal with correlations affecting γ counting efficiencies in analytical chemistry measurements performed by k0-NAA"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab7ca8\n\n# D'Agostino et al; "An uncertainty spreadsheet for the k0-standardisation method in Neutron Activation Analysis"\nJournal of Radioanalytical and Nuclear Chemistry (2018)\nDOI: 10.1007/s10967-018-6094-8""",
 
         'SOFTWARE VALIDATION:\n\n# Di Luzio et al; "Validation of detection efficiency-based corrections implemented in the k0-INRIM software"\nJournal of Radioanalytical and Nuclear Chemistry (2024)\nDOI: 10.1007/s10967-023-09223-6\n\n# Blaauw et al; "The 2021 IAEA software intercomparison for k0-INAA"\nJournal of Radioanalytical and Nuclear Chemistry (2023)\nDOI: 10.1007/s10967-022-08626-1',
 
         """REFERENCE TO PREVIOUS VERSIONS\n\n# Di Luzio et al; "The k0-INRIM software version 2.0: presentation and an analysis vademecum"\nJournal of Radioanalytical and Nuclear Chemistry (2023)\nDOI: 10.1007/s10967-022-08622-5\n\nD'Agostino et al; "Erratum: The k0-INRIM software: A tool to compile uncertainty budgets in neutron activation analysis based on k0-standardisation"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab57c8"""
         ])
 
-        version_info = '\n\n'.join(['# version 3.1 (2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
+        version_info = '\n\n'.join(['# version 3.2 (2024)\n-> result uncertainty contributions in output\n-> setting to change default uncertainty', '# version 3.1 (2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
 
         self._infodict = {'welcome' : welcome_info, 'references' : reference_info, 'license' : license_info, 'versions' : version_info, 'contacts' : contact_info}
         self.labelwidget = tk.Label(parent, text='')
@@ -130,7 +130,7 @@ class WelcomeWindow:
         B_infos = gui_things.Button(first_line, image=logo_infos, hint='useful and unuseful info', hint_destination=M.hintlabel, command=lambda : self.go_to_unusefulinformation(parent, M))
         B_infos.pack(side=tk.LEFT, anchor=tk.NW)
         B_infos.image = logo_infos
-        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.1, 2024', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
+        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.2, 2024', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
         button_header = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='settings & data'), relief='solid', bd=2, padx=4, pady=4)
         first_line.pack(anchor=tk.NW, fill=tk.X, expand=True)
 
@@ -226,7 +226,7 @@ class WelcomeWindow:
             RW.resizable(False, False)
             RW.title(f'Merged results from {len(filenames)} savefiles')
             all_colors = (M.settings.get('color04'), M.settings.get('color05'), M.settings.get('color06'), M.settings.get('color07'), M.settings.get('color08'), M.settings.get('color09'), M.settings.get('color10'), M.settings.get('color11'), M.settings.get('color12'), M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03'))
-            PTR = gui_things.PeriodicTable(RW, recalled_results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, display_type='show', lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), origin_files=lb_filenames, visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'))
+            PTR = gui_things.PeriodicTable(RW, recalled_results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, display_type='show', lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), origin_files=lb_filenames, visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'), total_contribution_summary=M.settings.get('total contribution summary'))
             PTR.pack(anchor=tk.NW, padx=5, pady=5)
         elif len(filenames) >= 27:
             M.hintlabel.configure(text='too many files')
@@ -241,7 +241,7 @@ class WelcomeWindow:
             RW.resizable(False, False)
             RW.title(os.path.basename(filename).split('.', 1)[0])
             all_colors = (M.settings.get('color04'), M.settings.get('color05'), M.settings.get('color06'), M.settings.get('color07'), M.settings.get('color08'), M.settings.get('color09'), M.settings.get('color10'), M.settings.get('color11'), M.settings.get('color12'), M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03'))
-            PTR = gui_things.PeriodicTable(RW, recalled_results.results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, display_type='show', lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'))
+            PTR = gui_things.PeriodicTable(RW, recalled_results.results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, display_type='show', lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'), total_contribution_summary=M.settings.get('total contribution summary'))
             PTR.pack(anchor=tk.NW, padx=5, pady=5)
 
     def go_to_settings(self, parent, M):
@@ -348,6 +348,11 @@ class SettingsWindow:
         variable_iterations.grid(row=nrow, column=1, sticky=tk.E)
 
         nrow += 1
+        gui_things.Label(elaboration, text='default non certified uncertainty', hint='default value for non certified uncertainties', hint_destination=M.hintlabel, width=labelspace, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
+        variable_noncertifieduncertainty = gui_things.Slider(elaboration, percent=True, label_width=4, resolution=1, from_=5, to=20, default=M.settings.get('non certified standard uncertainties'))
+        variable_noncertifieduncertainty.grid(row=nrow, column=1, sticky=tk.E)
+
+        nrow += 1
         gui_things.Label(elaboration, text='default f-α correlation', hint='set a correlation value adopted as default for f and α', hint_destination=M.hintlabel, width=labelspace, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
         variable_fluxcorrelation = gui_things.FSlider(elaboration, decimals=3, label_width=6, resolution=0.001, from_=-1.0, to=1.0, default=M.settings.get('f&a correlation'))
         variable_fluxcorrelation.grid(row=nrow, column=1, sticky=tk.E)
@@ -443,6 +448,11 @@ class SettingsWindow:
         variable_excel_hide_grid = gui_things.OnOffButton(outputframe, default=M.settings.get('hide grid'))
         variable_excel_hide_grid.grid(row=nrow, column=1, sticky=tk.E)
 
+        nrow += 1
+        gui_things.Label(outputframe, text='total uncertainty contribution', hint='show a graphic summary of the total uncertainty contribution', hint_destination=M.hintlabel, width=labelspace, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
+        variable_excel_contribution_summary = gui_things.OnOffButton(outputframe, default=M.settings.get('total contribution summary'))
+        variable_excel_contribution_summary.grid(row=nrow, column=1, sticky=tk.E)
+
         outputframe.pack(anchor=tk.NW, padx=5, pady=5)
 
         notebook.add(gframe, text='general  ')
@@ -459,7 +469,7 @@ class SettingsWindow:
 
         mframe.pack(anchor=tk.NW, fill=tk.BOTH, expand=True)
 
-        self.settings_pairings = {'energy tolerance' : variable_energy_tolerance, 'color01' : color01, 'color02' : color02, 'color03' : color03, 'color04' : color04, 'color05' : color05, 'color06' : color06, 'color07' : color07, 'color08' : color08, 'color09' : color09, 'color10' : color10, 'color11' : color11, 'color12' : color12, 'display graph in flux database' : variable_showgraph_database, 'overwrite manual emission selection' : variable_overwrite_emission_selection, 'page height' : variable_window_lines, 'color palette' : variable_color_palette, 'calibs statistical uncertainty limit' : variable_statistics_characterization, 'standard statistical uncertainty limit' : variable_statistics_standard, 'sample statistical uncertainty limit' : variable_statistics_sample, 'count rate threshold' : count_rate_alert, 'elaborate only selected emissions' : variable_elaborate_only_selected, 'max iterations' : variable_iterations, 'excel internal links' : variable_excel_internal_links, 'excel worksheet lock' : variable_excel_ws_locks, 'merge with prior' : variable_priormerge, 'average method' : variable_averagetype, 'visible models' : variable_excel_show_models, 'hide grid' : variable_excel_hide_grid, 'check internal consistency' : check_internal_peak_consistency, 'z limit' : z_limit_variable, 'f&a correlation' : variable_fluxcorrelation}
+        self.settings_pairings = {'energy tolerance' : variable_energy_tolerance, 'color01' : color01, 'color02' : color02, 'color03' : color03, 'color04' : color04, 'color05' : color05, 'color06' : color06, 'color07' : color07, 'color08' : color08, 'color09' : color09, 'color10' : color10, 'color11' : color11, 'color12' : color12, 'display graph in flux database' : variable_showgraph_database, 'overwrite manual emission selection' : variable_overwrite_emission_selection, 'page height' : variable_window_lines, 'color palette' : variable_color_palette, 'calibs statistical uncertainty limit' : variable_statistics_characterization, 'standard statistical uncertainty limit' : variable_statistics_standard, 'sample statistical uncertainty limit' : variable_statistics_sample, 'count rate threshold' : count_rate_alert, 'elaborate only selected emissions' : variable_elaborate_only_selected, 'max iterations' : variable_iterations, 'excel internal links' : variable_excel_internal_links, 'excel worksheet lock' : variable_excel_ws_locks, 'merge with prior' : variable_priormerge, 'average method' : variable_averagetype, 'visible models' : variable_excel_show_models, 'hide grid' : variable_excel_hide_grid, 'check internal consistency' : check_internal_peak_consistency, 'z limit' : z_limit_variable, 'f&a correlation' : variable_fluxcorrelation, 'total contribution summary' : variable_excel_contribution_summary, 'non certified standard uncertainties' : variable_noncertifieduncertainty}
 
     def check_options(self, M):
         for key, value in self.settings_pairings.items():
@@ -3556,7 +3566,7 @@ class MaterialdatabaseWindow:
 
         m_frame.pack(padx=5, pady=5)
 
-    def _as_text_display(self, certificate,preamble='Elemental components of the sample listed in decreasing value of mass fraction, relative uncertainty (k=1) is reported while non certified values are indicated as "nan"\n\n', header=['El','x / g g⁻¹','urx / %'],unit=None,include_header=True):
+    def _as_text_display(self, certificate, preamble='Elemental components of the sample listed in decreasing value of mass fraction, relative uncertainty (k=1) is reported while non certified values are indicated as "nan"\n\n', header=['El','x / g g⁻¹','urx / %'], unit=None, include_header=True):
             spaces = [4,11,11]
             if include_header:
                 head = f'{header[0].ljust(spaces[0]," ")}{header[1].rjust(spaces[1]," ")}{header[2].rjust(spaces[2]," ")}\n'
@@ -3601,7 +3611,7 @@ class MaterialdatabaseWindow:
                     self.matmodify_window.destroy()
                 except:
                     pass
-            self.matmodification_form(parent, M, naaobject.Material(f'{filename}.csv'))
+            self.matmodification_form(parent, M, naaobject.Material(f'{filename}.csv', non_certified_uncertainty=M.settings.get('non certified standard uncertainties')))
         else:
             M.hintlabel.configure(text='no material is selected')
 
@@ -4930,7 +4940,7 @@ class Results_MainWindow:
         RW = tk.Toplevel(parent)
         RW.resizable(False, False)
         all_colors = (M.settings.get('color04'), M.settings.get('color05'), M.settings.get('color06'), M.settings.get('color07'), M.settings.get('color08'), M.settings.get('color09'), M.settings.get('color10'), M.settings.get('color11'), M.settings.get('color12'), M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03'))
-        PTR = gui_things.PeriodicTable(RW, results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'), summary='\n'.join(overview))
+        PTR = gui_things.PeriodicTable(RW, results, default_palette=M.settings.get('color palette'), colors=(M.settings.get('color01'), M.settings.get('color02'), M.settings.get('color03')), allcolors=all_colors, visualization_type=vtype, lock_cells=M.settings.get('excel worksheet lock'), set_autolinks=M.settings.get('excel internal links'), visible_models=M.settings.get('visible models'), hide_grid=M.settings.get('hide grid'), summary='\n'.join(overview), total_contribution_summary=M.settings.get('total contribution summary'))
         PTR.pack(anchor=tk.NW, padx=5, pady=5)
 
     def calculate_beta(self, M, standard_spectrum, st_idx, sample_spectrum, sm_idx, st_emission_line, st_emiss_id, sm_emission_line, sm_emiss_id):
@@ -6587,18 +6597,18 @@ class BlankManagementWindow:
         self.hintlabel.grid(row=12, column=0, columnspan=2, sticky=tk.EW)
         mframe.pack(anchor=tk.NW, padx=5, pady=5)
 
-        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material())
+        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material(M.settings.get('non certified standard uncertainties')))
 
         try:
             self.material_selector.Combobox.set(M.INAAnalysis.blank_info.data[0][4].name)
-            self.disclose_material()
+            self.disclose_material(M.settings.get('non certified standard uncertainties'))
         except (AttributeError, IndexError):
             pass
 
-    def disclose_material(self):
+    def disclose_material(self, Msets=20):
         filename = self.material_selector.get()
         try:
-            provisional_sample = naaobject.Material(f'{filename}.csv')
+            provisional_sample = naaobject.Material(f'{filename}.csv', non_certified_uncertainty=Msets)
             text = provisional_sample._as_text_display(preamble=f'Name: {provisional_sample.name}\n\nDescription: {provisional_sample.description}\n\nType: {provisional_sample.sample_type}\n\n')
             self.display_information(text)
         except Exception:
@@ -6611,7 +6621,7 @@ class BlankManagementWindow:
         pmoist, pumoist = 0, 0
 
         advance = True
-        psample = naaobject.Material(f'{self.material_selector.get()}.csv')
+        psample = naaobject.Material(f'{self.material_selector.get()}.csv', non_certified_uncertainty=M.settings.get('non certified standard uncertainties'))
         try:
             pmass = float(self.mass_F.get())
         except ValueError:
@@ -7247,7 +7257,7 @@ class MeasurementSampleManagementWindow:
         displayer.grid(row=0, column=1, rowspan=12, sticky=tk.NSEW, padx=5)
 
         logo_savedata = tk.PhotoImage(data=gui_things.PL_check)
-        B_savesampledata = gui_things.Button(left_frame, image=logo_savedata, hint='save current composition', hint_destination=hintlabel, command=lambda : self.save_single_material_data(hintlabel))
+        B_savesampledata = gui_things.Button(left_frame, image=logo_savedata, hint='save current composition', hint_destination=hintlabel, command=lambda : self.save_single_material_data(hintlabel, M.settings.get('non certified standard uncertainties')))
         B_savesampledata.pack(anchor=tk.N, pady=10)
         B_savesampledata.image = logo_savedata
 
@@ -7257,11 +7267,11 @@ class MeasurementSampleManagementWindow:
 
         mframe.pack(anchor=tk.NW, padx=5, pady=5)
 
-        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material())
+        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material(M.settings.get('non certified standard uncertainties')))
 
         try:
             self.material_selector.Combobox.set(self.composition.data[0][4].name)
-            self.disclose_material()
+            self.disclose_material(M.settings.get('non certified standard uncertainties'))
         except (AttributeError, IndexError):
             pass
     
@@ -7285,7 +7295,7 @@ class MeasurementSampleManagementWindow:
         action_counter = tk.Frame(pipetter)
 
         logo_addaction = tk.PhotoImage(data=gui_things.PL_pipet)
-        B_addactiondata = gui_things.Button(action_counter, image=logo_addaction, hint='add new pipetting', hint_destination=hintlabel, command=lambda : self.add_action())
+        B_addactiondata = gui_things.Button(action_counter, image=logo_addaction, hint='add new pipetting', hint_destination=hintlabel, command=lambda : self.add_action(M.settings.get('non certified standard uncertainties')))
         B_addactiondata.grid(row=0, column=0, rowspan=2, padx=3, pady=3)
         B_addactiondata.image = logo_addaction
 
@@ -7316,7 +7326,7 @@ class MeasurementSampleManagementWindow:
         self.umass_F.insert(0, 0.000)
         self.umass_F.configure(state=tk.DISABLED)
         
-        self.material_selector = gui_things.HelpedCombobox(action_worker, width=25, data=[os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'samples')) if filename.lower().endswith('.csv') and naaobject.Material(f'{os.path.splitext(filename)[0]}.csv').state=='solution'], hint='select material', hint_xoffset=0, hint_destination=hintlabel, allow_new_input=False, default_invalid='')
+        self.material_selector = gui_things.HelpedCombobox(action_worker, width=25, data=[os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'samples')) if filename.lower().endswith('.csv') and naaobject.Material(f'{os.path.splitext(filename)[0]}.csv', non_certified_uncertainty=M.settings.get('non certified standard uncertainties')).state=='solution'], hint='select material', hint_xoffset=0, hint_destination=hintlabel, allow_new_input=False, default_invalid='')
         self.material_selector.grid(row=1, column=2, columnspan=2, sticky=tk.EW)
         self.material_selector.Combobox.configure(state='disabled')
 
@@ -7326,7 +7336,7 @@ class MeasurementSampleManagementWindow:
         B_deletesampledata.image = logo_deletedata
 
         logo_savedata = tk.PhotoImage(data=gui_things.PL_ggear)
-        B_savesampledata = gui_things.Button(action_worker, image=logo_savedata, hint='save/modify current datum', hint_destination=hintlabel, command=lambda : self.save_modify_pipetting(hintlabel))
+        B_savesampledata = gui_things.Button(action_worker, image=logo_savedata, hint='save/modify current datum', hint_destination=hintlabel, command=lambda : self.save_modify_pipetting(hintlabel, M.settings.get('non certified standard uncertainties')))
         B_savesampledata.grid(row=0, column=4, rowspan=2, padx=3, pady=3)
         B_savesampledata.image = logo_savedata
 
@@ -7340,7 +7350,7 @@ class MeasurementSampleManagementWindow:
         displayer.grid(row=0, column=1, rowspan=2, sticky=tk.NSEW, padx=5)
 
         logo_savecomposition = tk.PhotoImage(data=gui_things.PL_check)
-        B_savesamplecomposition = gui_things.Button(mframe, image=logo_savecomposition, hint='save current composition', hint_destination=hintlabel, command=lambda : self.save_pipetted_material_data(hintlabel))
+        B_savesamplecomposition = gui_things.Button(mframe, image=logo_savecomposition, hint='save current composition', hint_destination=hintlabel, command=lambda : self.save_pipetted_material_data(hintlabel, M.settings.get('non certified standard uncertainties')))
         B_savesamplecomposition.grid(row=3, column=0, columnspan=2, padx=3, pady=3)
         B_savesamplecomposition.image = logo_savecomposition
 
@@ -7349,11 +7359,11 @@ class MeasurementSampleManagementWindow:
         mframe.pack(anchor=tk.NW, padx=5, pady=5)
 
         self.pipsLB.listbox.bind('<Double-Button-1>', lambda e='<Double-Button-1>': self.select_line(hintlabel))
-        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material())
+        self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material(M.settings.get('non certified standard uncertainties')))
 
-    def save_pipetted_material_data(self, hintlabel):
+    def save_pipetted_material_data(self, hintlabel, Msets):
         text = 'no pipetting data introduced'
-        self.disclose_material()
+        self.disclose_material(Msets)
 
         if len(self.composition.data) > 0:
             pmass, pumass, pmoist, pumoist, psample = [], [], [], [], []
@@ -7368,7 +7378,7 @@ class MeasurementSampleManagementWindow:
             text = 'composition successfully saved'
         hintlabel.configure(text=text)
 
-    def add_action(self):
+    def add_action(self, Msets):
         self.n_action.configure(text=f'{len(self.composition.data)+1}')
         self.mass_F.delete(0, tk.END)
         self.mass_F.insert(0, 0.000)
@@ -7380,7 +7390,7 @@ class MeasurementSampleManagementWindow:
         self.umass_F.configure(state=tk.NORMAL)
         self.material_selector.Combobox.configure(state='normal')
 
-        self.disclose_material()
+        self.disclose_material(Msets)
 
     def delete_pipetting(self, hintlabel):
         n_action = self.n_action.cget('text')
@@ -7427,7 +7437,7 @@ class MeasurementSampleManagementWindow:
             text = psample._as_text_display(preamble=f'Name: {psample.name}\n\nDescription: {psample.description}\n\nType: {psample.sample_type}\n\n')
             self.display_information(text)
 
-    def save_modify_pipetting(self, hintlabel):
+    def save_modify_pipetting(self, hintlabel, Msets=20):
         n_action = self.n_action.cget('text')
         if n_action == '':
             proceed = False
@@ -7455,7 +7465,7 @@ class MeasurementSampleManagementWindow:
             problem = 'invalid mass uncertainty'
 
         if self.material_selector.get() != '':
-            psample = naaobject.Material(f'{self.material_selector.get()}.csv')
+            psample = naaobject.Material(f'{self.material_selector.get()}.csv', non_certified_uncertainty=Msets)
         else:
             psample = None
             proceed = False
@@ -7473,10 +7483,10 @@ class MeasurementSampleManagementWindow:
     def _to_text(self):
         return [f'{format(nn, "d").ljust(4)}{format(mass, ".2e").rjust(10)} g, {sample.name[:20]}' for nn, (mass, umass, moisture, umoisture, sample) in enumerate(self.composition.data, start=1)]
 
-    def disclose_material(self):
+    def disclose_material(self, Msets=20):
         filename = self.material_selector.get()
         try:
-            provisional_sample = naaobject.Material(f'{filename}.csv')
+            provisional_sample = naaobject.Material(f'{filename}.csv', non_certified_uncertainty=Msets)
             text = provisional_sample._as_text_display(preamble=f'Name: {provisional_sample.name}\n\nDescription: {provisional_sample.description}\n\nType: {provisional_sample.sample_type}\n\n')
             self.display_information(text)
         except Exception:
@@ -7485,9 +7495,9 @@ class MeasurementSampleManagementWindow:
     def display_information(self, text):
         self.display_materialinfo._update(text)
 
-    def save_single_material_data(self, hintlabel):
+    def save_single_material_data(self, hintlabel, Msets=20):
         advance = True
-        psample = naaobject.Material(f'{self.material_selector.get()}.csv')
+        psample = naaobject.Material(f'{self.material_selector.get()}.csv', non_certified_uncertainty=Msets)
         try:
             pmass = float(self.mass_F.get())
         except ValueError:
@@ -7701,7 +7711,8 @@ class Settings:
         ('hide grid', 'bool', 1),
         ('check internal consistency', 'bool', 1),
         ('z limit', 'float', 3.0),
-        ('f&a correlation', 'float', -0.5))
+        ('f&a correlation', 'float', -0.5),
+        ('total contribution summary', 'bool', 1))
         return master_settings
 
     def get_bool_right(self, value):
