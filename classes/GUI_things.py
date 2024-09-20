@@ -1328,7 +1328,7 @@ class Subwindow(tkinter.Toplevel):
 
 class PeriodicTable(tkinter.Frame):
     """A periodic table for displaying of results"""
-    def __init__(self, master, results, visualization_type='sample', display_type='results', resolution=8, default_palette='YlOrRd', colors=('#c30a00', '#fcd664', '#000000'), max_windows_open_at_a_time=10, allcolors=('#c30a00', '#fcd664', '#000000'), lock_cells=False, set_autolinks=False, origin_files=(), visible_models=True, hide_grid=True, summary=''):
+    def __init__(self, master, results, visualization_type='sample', display_type='results', resolution=8, default_palette='YlOrRd', colors=('#c30a00', '#fcd664', '#000000'), max_windows_open_at_a_time=10, allcolors=('#c30a00', '#fcd664', '#000000'), lock_cells=False, set_autolinks=False, origin_files=(), visible_models=True, hide_grid=True, summary='', total_contribution_summary=True):
         tkinter.Frame.__init__(self, master)
         self.periodic_data = periodic_data
         self.results = results
@@ -1350,6 +1350,7 @@ class PeriodicTable(tkinter.Frame):
         self.summary = summary
         self.visible_models = visible_models
         self.hide_grid = hide_grid
+        self.total_contribution_summary = total_contribution_summary
 
         if visualization_type == 'sample':
             self.sample_type(resolution, default_palette, display_type)
@@ -1992,7 +1993,7 @@ class PeriodicTable(tkinter.Frame):
             filetypes = (('HyperLab peak list','*.xlsx'),)
             namefile = asksaveasfilename(parent=parent, initialfile=f'{title}.xlsx', filetypes=filetypes)
             if namefile != '':
-                SingleBudgetOutput(sublocal_data, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid)
+                SingleBudgetOutput(sublocal_data, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid, total_contribution_summary=self.total_contribution_summary)
                 messagebox.showinfo(title='Success', message='Uncertainty budget is saved', parent=parent)
             
     def _linearize(self, data, spaces, out='list'):
@@ -2152,7 +2153,7 @@ class PeriodicTable(tkinter.Frame):
         ftitle = parent.title().replace(' | ', '_')
         namefile = asksaveasfilename(parent=parent, initialfile=f'{ftitle}.xlsx', filetypes=filetypes)
         if namefile != '':
-            SingleBudgetOutput(local_budget, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid)
+            SingleBudgetOutput(local_budget, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid, total_contribution_summary=self.total_contribution_summary)
             messagebox.showinfo(title='Success', message='Uncertainty budget is saved', parent=parent)
 
     def save_results(self, hintlabel):

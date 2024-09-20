@@ -1196,7 +1196,7 @@ class Material:
 	"""
 	Define macroscopic sample types to be irradiated
 	"""
-	def __init__(self,filename,folder=os.path.join('data','samples'),non_certified_uncertainty=20, old_sample=None):
+	def __init__(self, filename, folder=os.path.join('data','samples'),non_certified_uncertainty=20, old_sample=None):
 		name, description, stype, physical_state, density, udensity, certificate, index = self._get_sample_information(filename,folder,non_certified_uncertainty,old_sample)
 		self.name = name
 		self.description = description.replace('\n','')
@@ -1219,7 +1219,7 @@ class Material:
 		text += text_non
 		return '\n'.join(text)
 
-	def _get_sample_information(self,filename,folder,non_certified_uncertainty,old_sample=None):
+	def _get_sample_information(self, filename, folder, non_certified_uncertainty, old_sample=None):
 		nfile = os.path.join(folder,filename)
 		try:
 			with open(nfile, 'r') as samplefile:
@@ -1239,7 +1239,7 @@ class Material:
 				name, description, stype, physical_state, density, udensity, certificate, index = old_sample.name, old_sample.description, old_sample.sample_type, old_sample.state, old_sample.o_density, old_sample.o_udensity, old_sample.certificate, old_sample.non_certified
 		return name, description, stype, physical_state, density, udensity, certificate, index
 
-	def _fillna(self,key,value,uncertainty,default,index):
+	def _fillna(self, key, value, uncertainty, default, index):
 		if key in index:
 			if default is not None:
 				return (value,value*default/100)
@@ -1248,7 +1248,7 @@ class Material:
 		else:
 			return (value,uncertainty)
 
-	def _as_text_display(self,preamble='Elemental components of the sample listed in decreasing value of mass fraction, relative uncertainty (k=1) is reported while non certified values are indicated as "nan"\n\n', header=['El','x / g g⁻¹','urx / %'],unit=None,include_header=True):
+	def _as_text_display(self, preamble='Elemental components of the sample listed in decreasing value of mass fraction, relative uncertainty (k=1) is reported while non certified values are indicated as "nan"\n\n', header=['El','x / g g⁻¹','urx / %'], unit=None, include_header=True):
 		spaces = [4,11,11]
 		if include_header:
 			head = f'{header[0].ljust(spaces[0]," ")}{header[1].rjust(spaces[1]," ")}{header[2].rjust(spaces[2]," ")}\n'
@@ -1265,7 +1265,7 @@ class Material:
 				header[1] = 'x / g g⁻¹'
 		return preamble+head+astext
 
-	def _update_uncertainties(self,non_certified_uncertainty=20):
+	def _update_uncertainties(self, non_certified_uncertainty=20):
 		certificate_updated = {key : (self.certificate[key][0], self.certificate[key][0]*non_certified_uncertainty/100) for key in self.non_certified}
 
 		self.certificate = {**self.certificate, **certificate_updated}
@@ -1300,6 +1300,7 @@ class MeasurementSample:
 		return {}
 	
 	def calculate_Ge(self, cross_section_df):
+		"""Calculate epithermal self shielding correction factor adopting Martinho universal curve for cylindrical samples"""
 		Ge = {}
 		master_plan = [(element, A) for element, A in zip(cross_section_df['element'], cross_section_df['A'])]
 		for element_x in list(self.composition.certificate.keys()):
@@ -1312,6 +1313,7 @@ class MeasurementSample:
 		return Ge
 
 	def _calculate_thermal_self_shielding(self, cross_section_df):
+		"""Calculate thermal self shielding correction factor adopting Martinho universal curve for cylindrical samples"""
 		if cross_section_df is not None and self.composition.certificate:
 			radius, uradius, height, uheight = self.diameter/20, self.diameter_unc/20, self.height/10, self.height_unc/10
 			return self.MAR_cylinder(radius, uradius, height, uheight, cross_section_df)
@@ -1411,7 +1413,7 @@ class MeasurementSample:
 		cs = np.array([cs0, cs1, cs2, cs3, cs4])
 		return (A1 - A2) / (1 + (Z / z0)**p0) + A2, np.sqrt(np.sum(np.power(ux * cs, 2)))
 	
-	def MAR_z_cylinderE(self, radius, uradius, height, uheight, mass, umass, mass_fractions, cross_section_df, element, A):#good one!
+	def MAR_z_cylinderE(self, radius, uradius, height, uheight, mass, umass, mass_fractions, cross_section_df, element, A):
 		"""MXS = Macroscopic Cross-Section"""
 		#Avogadro / mol-1
 		NA = 6.022E23
@@ -2165,7 +2167,7 @@ class SampleComposition(PartialBudget):
 	
 
 class NeutronFlux(PartialBudget):
-	"""Some information"""
+	"""Budget involving the ratio of neutron acativation for standard and sample"""
 	def __init__(self, M, standard_id, sample_id, st_emission_line, sm_emission_line):
 
 		self.relative = st_emission_line == sm_emission_line
@@ -2332,7 +2334,7 @@ class NeutronFlux(PartialBudget):
 
 
 class Efficiency(PartialBudget):
-	"""Some information"""
+	"""Budget involving ratio of detection efficiencies"""
 	def __init__(self, M, standard_spectrum, sample_spectrum, st_emission_line, sm_emission_line):
 
 		self.E_a, self.E_m = sm_emission_line.energy, st_emission_line.energy
@@ -2564,7 +2566,7 @@ class Efficiency(PartialBudget):
 
 
 class Masses_Comp(PartialBudget):
-	"""Some information"""
+	"""Budget involving ratio of masses"""
 	def __init__(self, M, standard_id, sample_id, m_target):
 
 		#self.relative = True#other options

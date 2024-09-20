@@ -1811,7 +1811,7 @@ class SingleBudget:
 
 
 class SingleBudgetOutput(SingleBudget):
-    def __init__(self, budget, filename, lock_cells=False, set_autolinks=False, visible_models=True, hide_grids=True):
+    def __init__(self, budget, filename, lock_cells=False, set_autolinks=False, visible_models=True, hide_grids=True, total_contribution_summary=True):
         workbook  = xlsxwriter.Workbook(filename, {'nan_inf_to_errors': True})
         workbook.set_tab_ratio(80)
         
@@ -1819,6 +1819,7 @@ class SingleBudgetOutput(SingleBudget):
         self.lock_cells = lock_cells
         self.set_autolinks = set_autolinks
         self.visible_models = visible_models
+        self.total_contribution_summary = total_contribution_summary
         if hide_grids:
             self.hide_gridlines = 2
         else:
@@ -2655,6 +2656,35 @@ class SingleBudgetOutput(SingleBudget):
         fml = f'=INT(AVERAGE(AE4:AE{idx_ave}))'
         worksheet.write(idx_tbud+10, 6, fml, self.font_integer)
 
+        if self.total_contribution_summary:
+            worksheet.write_rich_string(idx_tbud+2, 7, self.font_ital, 'I', ' total (bar)')
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+9}'
+            worksheet.write(idx_tbud+3, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+10}'
+            worksheet.write(idx_tbud+4, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+11}'
+            worksheet.write(idx_tbud+5, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+12}'
+            worksheet.write(idx_tbud+6, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+13}'
+            worksheet.write(idx_tbud+7, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+14}'
+            worksheet.write(idx_tbud+8, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+15}'
+            worksheet.write(idx_tbud+9, 7, fml)
+            fml = f'=B{idx_ave+3}^2/D{idx_ave+3}^2*F{idx_ave+16}'
+            worksheet.write(idx_tbud+10, 7, fml)
+
+            worksheet.write(idx_tbud+11, 0, 'scattering', self.grey_info)
+            worksheet.write(idx_tbud+11, 1, '', self.grey_fill)
+            worksheet.write_rich_string(idx_tbud+11, 2, 'g g', self.font_sups, '-1')
+            fml = f'=D{idx_ave+3}^2-B{idx_ave+3}^2'
+            worksheet.write(idx_tbud+11, 3, fml, self.font_datum)
+            fml = f'=D{idx_ave+17}/D{idx_ave+3}^2'
+            worksheet.write(idx_tbud+11, 7, fml)
+
+            worksheet.conditional_format(f'H{idx_ave+9}:H{idx_ave+17}', {'type':'data_bar', 'min_type':'num', 'max_type':'num', 'bar_color':'#173c78', 'bar_only':True, 'min_value':0, 'max_value':1, 'bar_border_color':'#0a0a0a', 'bar_solid': True, 'bar_direction': 'left'})
+
         worksheet.conditional_format(f'F{idx_ave+9}:F{idx_ave+16}', {'type':'data_bar', 'min_type':'num', 'max_type':'num', 'bar_color':'#c9291a', 'bar_only':True, 'min_value':0, 'max_value':1, 'bar_border_color':'#0a0a0a', 'bar_solid': True, 'bar_direction': 'left'})
 
         #hidden values for graph
@@ -2707,7 +2737,19 @@ class SingleBudgetOutput(SingleBudget):
         chart_doe.set_size({'width': x_size*64, 'height': y_size*20})
         worksheet.insert_chart(idx_ave+20, 8, chart_doe)
 
-        chart_pie.add_series({"name": "", "categories": f"='Summary'!A{idx_ave+9}:A{idx_ave+17}", "values": f"='Summary'!E{idx_ave+9}:E{idx_ave+17}", 'data_labels':{'value':True, 'category':True, 'leader_lines': True, 'position': 'best_fit'}, "points": [
+        if self.total_contribution_summary:
+            chart_pie.add_series({"name": "", "categories": f"='Summary'!A{idx_ave+9}:A{idx_ave+17}", "values": f"='Summary'!H{idx_ave+9}:H{idx_ave+17}", 'data_labels':{'value':False, 'percentage': True, 'category':True, 'leader_lines': True, 'position': 'best_fit'}, "points": [
+            {"fill": {"color": "#FFD500"}},
+            {"fill": {"color": "#369E4B"}},
+            {"fill": {"color": "#5DB5B7"}},
+            {"fill": {"color": "#31407B"}},
+            {"fill": {"color": "#D31E25"}},
+            {"fill": {"color": "#8A3F64"}},
+            {"fill": {"color": "#4F2E39"}},
+            {"fill": {"color": "#A29C98"}},
+            {"fill": {"color": "#90EE90"}}]})
+        else:
+            chart_pie.add_series({"name": "", "categories": f"='Summary'!A{idx_ave+9}:A{idx_ave+16}", "values": f"='Summary'!F{idx_ave+9}:F{idx_ave+16}", 'data_labels':{'value':False, 'percentage': True, 'category':True, 'leader_lines': True, 'position': 'best_fit'}, "points": [
             {"fill": {"color": "#FFD500"}},
             {"fill": {"color": "#369E4B"}},
             {"fill": {"color": "#5DB5B7"}},
