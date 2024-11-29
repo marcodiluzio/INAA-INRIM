@@ -4,25 +4,24 @@ import datetime
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from tkinter.filedialog import askopenfilename, askopenfilenames, asksaveasfilename
+from tkinter.filedialog import askopenfilename, askopenfilenames
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
 import classes.recovery as recovery_script
-#try:
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
 import classes.GUI_things as gui_things
-#import classes.naaoutputs as naaoutput
 import classes.naanalysis as naaobject
 
 
 class MainWindow:
-    # only one subwindow open at a time
+    """The base window class"""
+    #only one subwindow open at a time
     def __init__(self, M, settings, home):
         __version__ = 3.2
         self.main_window = tk.Frame(M)
@@ -51,18 +50,20 @@ class MainWindow:
         WelcomeWindow(self.main_window, M)
 
     def on_closing(self, M, title='Quit INAA-INRIM', message='Unsaved data will be lost.\n\nDo you want to quit?'):
+        """closing window callback, asks for confirmation"""
         if messagebox.askokcancel(title, message):
             M.destroy()
 
 
 def clear_window(window):
-    #clears all children in window
+    """clears all children in window"""
     cdn = window.winfo_children()
     for i in cdn:
         i.destroy()
 
 
 class UsefulUnusefulInformationWindow:
+    """Class for the Software information window"""
     def __init__(self, parent):
         parent.title('INAA-INRIM information')
         parent.resizable(False, False)
@@ -82,7 +83,7 @@ class UsefulUnusefulInformationWindow:
         """REFERENCE TO PREVIOUS VERSIONS\n\n# Di Luzio et al; "The k0-INRIM software version 2.0: presentation and an analysis vademecum"\nJournal of Radioanalytical and Nuclear Chemistry (2023)\nDOI: 10.1007/s10967-022-08622-5\n\nD'Agostino et al; "Erratum: The k0-INRIM software: A tool to compile uncertainty budgets in neutron activation analysis based on k0-standardisation"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab57c8"""
         ])
 
-        version_info = '\n\n'.join(['# version 3.2 (2024)\n-> result uncertainty contributions in output\n-> setting to change default uncertainty', '# version 3.1 (2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
+        version_info = '\n\n'.join(['# version 3.2 (Dec 2024)\n-> creation of presets for faster peak search\n-> result uncertainty contributions in output\n-> setting to change default uncertainty', '# version 3.1 (Sep 2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (Jul 2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
 
         self._infodict = {'welcome' : welcome_info, 'references' : reference_info, 'license' : license_info, 'versions' : version_info, 'contacts' : contact_info}
         self.labelwidget = tk.Label(parent, text='')
@@ -110,6 +111,7 @@ class UsefulUnusefulInformationWindow:
         self.items_LB.listbox.bind('<Double-Button-1>', lambda e='<Double-Button-1>': self.dclick())
 
     def dclick(self):
+        """change info page shown from the list of topics"""
         idx = self.items_LB.get_selection()
 
         if idx not in self._infodict.keys():
@@ -121,6 +123,7 @@ class UsefulUnusefulInformationWindow:
 
 
 class WelcomeWindow:
+    """Main window of the software"""
     def __init__(self, parent, M):
         mframe = tk.Frame(parent)
         M.title('The INRIM toolbox')
@@ -134,7 +137,6 @@ class WelcomeWindow:
         button_header = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='settings & data'), relief='solid', bd=2, padx=4, pady=4)
         first_line.pack(anchor=tk.NW, fill=tk.X, expand=True)
 
-        col = 0
         logo_settings = tk.PhotoImage(data=gui_things.PL_ggear)
         B_settings = gui_things.Button(button_header, image=logo_settings, hint='settings', hint_destination=M.hintlabel, command=lambda : self.go_to_settings(parent, M))
         B_settings.grid(row=0, column=0, sticky=tk.W)
@@ -194,6 +196,7 @@ class WelcomeWindow:
         B_loadNAA.configure(command=lambda : self._call_previously_saved_analysis_(parent, M))
 
     def _call_previously_saved_analysis_(self, parent, M):
+        """Recall saved analysis files"""
         filetypes = (('INAAnalysis save file','*.naas'),)
         filename = askopenfilename(parent=parent, title=f'Recall analysis file',filetypes=filetypes)
         if filename != '':
@@ -206,6 +209,7 @@ class WelcomeWindow:
                 M.hintlabel.configure(text='impossible to load, incorrect file format')
 
     def go_to_analysis(self, parent, M):
+        """Change the Main window to the Analysis window"""
         clear_window(parent)
         #initialize k0_NAA
         if M.INAAnalysis is None or M.variable_new_analysis.get() == 1:
@@ -213,6 +217,7 @@ class WelcomeWindow:
         RelINRIM_MainWindow(parent, M)
 
     def go_to_showmergedresults(self, parent, M, vtype='sample'):
+        """Open the Results window; allows to merge different analysis previously saved (up to 26, because letters)"""
         filetypes = (('Budget Object','*.boj'),)
         filenames = askopenfilenames(parent=parent, title=f'Recall analysis results',filetypes=filetypes)
         if filenames != () and len(filenames) < 27:
@@ -232,6 +237,7 @@ class WelcomeWindow:
             M.hintlabel.configure(text='too many files')
 
     def go_to_showresults(self, parent, M, vtype='sample'):
+        """Open the single Result window"""
         filetypes = (('Budget Object','*.boj'),)
         filename = askopenfilename(parent=parent, title=f'Recall analysis results',filetypes=filetypes)
         if filename != '':
@@ -245,14 +251,17 @@ class WelcomeWindow:
             PTR.pack(anchor=tk.NW, padx=5, pady=5)
 
     def go_to_settings(self, parent, M):
+        """Change the Main window to the Settings window"""
         clear_window(parent)
         SettingsWindow(parent, M)
 
     def go_to_databasesettings(self, parent, M):
+        """Change the Main window to the Databases window"""
         clear_window(parent)
         DatabaseWindow(parent, M)
     
     def go_to_unusefulinformation(self, parent, M):
+        """Open the Software information window form the Main menu"""
         try:
             M.InformationWindow.destroy()
         except:
@@ -262,6 +271,7 @@ class WelcomeWindow:
 
 
 class SettingsWindow:
+    """Class for the Settings window of the main menu"""
     def __init__(self, parent, M):
         mframe = tk.Frame(parent)
         M.title('Settings')
@@ -314,10 +324,8 @@ class SettingsWindow:
         variable_statistics_characterization = gui_things.Slider(peak_identification, percent=True, label_width=4, resolution=1, from_=1, to=10, default=M.settings.get('calibs statistical uncertainty limit'))
         variable_statistics_characterization.grid(row=nrow, column=1, sticky=tk.E)
 
-        nrow += 1
-        gui_things.Label(peak_identification, text='max peak uncertainty (standards)', hint='exclude peaks with higher statistical uncertainty (standard spectra)', hint_destination=M.hintlabel, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
+        #deprecated, but left for compatibility
         variable_statistics_standard = gui_things.Slider(peak_identification, percent=True, label_width=4, resolution=1, from_=1, to=15, default=M.settings.get('standard statistical uncertainty limit'))
-        variable_statistics_standard.grid(row=nrow, column=1, sticky=tk.E)
 
         nrow += 1
         gui_things.Label(peak_identification, text='max peak uncertainty (samples)', hint='exclude peaks with higher statistical uncertainty (sample spectra)', hint_destination=M.hintlabel, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
@@ -358,6 +366,7 @@ class SettingsWindow:
         variable_fluxcorrelation.grid(row=nrow, column=1, sticky=tk.E)
 
         nrow += 1
+        #deprecated
         #gui_things.Label(elaboration, text='composition update', hint='merging prior and posterior information', hint_destination=M.hintlabel, width=labelspace, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
         variable_priormerge = gui_things.Combobox(elaboration, width=15, state='readonly')
         #variable_priormerge.grid(row=nrow, column=1, sticky=tk.E)
@@ -365,6 +374,7 @@ class SettingsWindow:
         variable_priormerge.set(M.settings.get('merge with prior'))
 
         nrow += 1
+        #deprecated
         #gui_things.Label(elaboration, text='average formula', hint='formula to adopt for averaging', hint_destination=M.hintlabel, width=labelspace, anchor=tk.W).grid(row=nrow, column=0, sticky=tk.W)
         variable_averagetype = gui_things.Combobox(elaboration, width=15, state='readonly')
         #variable_averagetype.grid(row=nrow, column=1, sticky=tk.E)
@@ -472,21 +482,25 @@ class SettingsWindow:
         self.settings_pairings = {'energy tolerance' : variable_energy_tolerance, 'color01' : color01, 'color02' : color02, 'color03' : color03, 'color04' : color04, 'color05' : color05, 'color06' : color06, 'color07' : color07, 'color08' : color08, 'color09' : color09, 'color10' : color10, 'color11' : color11, 'color12' : color12, 'display graph in flux database' : variable_showgraph_database, 'overwrite manual emission selection' : variable_overwrite_emission_selection, 'page height' : variable_window_lines, 'color palette' : variable_color_palette, 'calibs statistical uncertainty limit' : variable_statistics_characterization, 'standard statistical uncertainty limit' : variable_statistics_standard, 'sample statistical uncertainty limit' : variable_statistics_sample, 'count rate threshold' : count_rate_alert, 'elaborate only selected emissions' : variable_elaborate_only_selected, 'max iterations' : variable_iterations, 'excel internal links' : variable_excel_internal_links, 'excel worksheet lock' : variable_excel_ws_locks, 'merge with prior' : variable_priormerge, 'average method' : variable_averagetype, 'visible models' : variable_excel_show_models, 'hide grid' : variable_excel_hide_grid, 'check internal consistency' : check_internal_peak_consistency, 'z limit' : z_limit_variable, 'f&a correlation' : variable_fluxcorrelation, 'total contribution summary' : variable_excel_contribution_summary, 'non certified standard uncertainties' : variable_noncertifieduncertainty}
 
     def check_options(self, M):
+        """assure integrity of selected options"""
         for key, value in self.settings_pairings.items():
             M.settings.set(key, value)
 
     def confirm_options(self, M):
+        """Save options"""
         self.check_options(M)
         M.hintlabel.configure(text='changes saved')
         M.trigger_emission_assignment = True
 
     def go_back(self, parent, M):
+        """Return to Main window"""
         clear_window(parent)
         M.settings.dump()
         WelcomeWindow(parent, M)
 
 
 class DatabaseWindow:
+    """Class for the Databases window of the main menu"""
     def __init__(self, parent, M):
         mframe = tk.Frame(parent)
         M.title('Databases')
@@ -585,11 +599,22 @@ class DatabaseWindow:
         B_flux.grid(row=0, column=clm)
         B_flux.image = logo_flux
 
+        clm += 1
+        ttk.Separator(buttons_frame, orient="vertical").grid(row=0, column=clm, padx=3, pady=3, sticky=tk.NS)
+
+        clm += 1
+        label_title = 'search preset database'
+        logo_preset = tk.PhotoImage(data=gui_things.PL_bookmarkedlist)
+        B_preset = gui_things.Button(buttons_frame, image=logo_preset, hint=label_title, hint_destination=M.hintlabel, command=lambda l_title=label_title: self.go_to_presetsdatabase(work_frame, M, l_title))
+        B_preset.grid(row=0, column=clm)
+        B_preset.image = logo_preset
+
         buttons_frame.grid(row=2, column=0, sticky=tk.W)
         work_frame.grid(row=3, column=0, columnspan=10, sticky=tk.EW, pady=5)
 
         mframe.pack(anchor=tk.NW)
 
+    #go to corresponding subwindows
     def go_to_materialdatabase(self, parent, M, title):
         clear_window(parent)
         MaterialdatabaseWindow(parent, M, title)
@@ -610,6 +635,10 @@ class DatabaseWindow:
         clear_window(parent)
         NeutronFluxdatabaseWindow(parent, M, title)
 
+    def go_to_presetsdatabase(self, parent, M, title):
+        clear_window(parent)
+        PresetsdatabaseWindow(parent, M, title)
+
     def go_to_k0database(self, parent, M, title):
         clear_window(parent)
         k0databaseWindow(parent, M, title)
@@ -627,7 +656,135 @@ class DatabaseWindow:
         WelcomeWindow(parent, M)
 
 
+class PresetsdatabaseWindow:
+    """Subwindow Presets of the Databases window"""
+    def __init__(self, parent, M, title):
+        self.preset_window = None
+        m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
+        tk.Label(m_frame, text='currently available presets', anchor=tk.W).pack(anchor=tk.W)
+
+        presets_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')]
+
+        self.PST_LB = gui_things.ScrollableListbox(m_frame, width=45, height=15, data=presets_list)
+        self.PST_LB.pack(expand=True, fill=tk.X)
+
+        f_buttons = tk.Frame(m_frame)
+
+        logo_add_preset = tk.PhotoImage(data=gui_things.PL_plussign)
+        B_add_preset = gui_things.Button(f_buttons, image=logo_add_preset, hint='add a new custom preset', hint_destination=M.hintlabel, command=lambda : self.add_user_preset(m_frame, M))
+        B_add_preset.pack(side=tk.LEFT)
+        B_add_preset.image = logo_add_preset
+
+        logo_modify_preset = tk.PhotoImage(data=gui_things.PL_ggear)
+        B_modify_preset = gui_things.Button(f_buttons, image=logo_modify_preset, hint='modify existing preset', hint_destination=M.hintlabel, command=lambda : self.modify_user_preset(m_frame, M))
+        B_modify_preset.pack(side=tk.LEFT)
+        B_modify_preset.image = logo_modify_preset
+
+        logo_delete_preset = tk.PhotoImage(data=gui_things.PL_none)
+        B_delete_preset = gui_things.Button(f_buttons, image=logo_delete_preset, hint='delete preset', hint_destination=M.hintlabel, command=lambda : self.delete_preset(m_frame, M))
+        B_delete_preset.pack(side=tk.LEFT)
+        B_delete_preset.image = logo_delete_preset
+
+        f_buttons.pack(anchor=tk.W)
+
+        m_frame.pack(padx=5, pady=5)
+
+    def delete_preset(self, parent, M):
+        """Delete preset selected form the list"""
+        presetname = self.PST_LB.get_selection()
+
+        if self.preset_window is not None:
+            try:
+                self.preset_window.destroy()
+            except:
+                pass
+
+        if presetname is not None:
+            if messagebox.askyesno(title='Delete user preset', message=f'\nAre you sure to delete preset {presetname}?\n', parent=parent):
+                os.remove(os.path.join(os.path.join('data', 'presets'),f'{presetname}.pst'))
+
+                presets_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')]
+                self.PST_LB._update(presets_list)
+                M.hintlabel.configure(text=f'preset {presetname} deleted')
+        else:
+            M.hintlabel.configure(text='no preset is selected')
+
+    def add_user_preset(self, parent, M):
+        """Add a new preset"""
+        if self.preset_window is not None:
+            try:
+                self.preset_window.destroy()
+            except:
+                pass
+        self.presetmodification_form(parent, M)
+
+    def modify_user_preset(self, parent, M):
+        """Modify a pre-existing preset from the list"""
+        filename = self.PST_LB.get_selection()
+        if filename is not None:
+            if self.preset_window is not None:
+                try:
+                    self.preset_window.destroy()
+                except:
+                    pass
+            self.presetmodification_form(parent, M, naaobject._call_database(filename, 'presets', 'pst'), filename)
+        else:
+            M.hintlabel.configure(text='no preset is selected')
+
+    def presetmodification_form(self, parent, M, existing_preset=None, filename='New preset'):
+        """Modify preset window"""
+        self.preset_window = tk.Toplevel(parent)
+        if existing_preset is not None:
+            title = f'Display existing preset ({filename})'
+        else:
+            title = f'New preset'
+        self.preset_window.title(title)
+        self.preset_window.resizable(False, False)
+
+        self.SPT = gui_things.SelectionPeriodicTable(self.preset_window, existing_preset, default_palette=M.settings.get('color palette'))
+        self.SPT.pack(expand=True, fill=tk.X)
+
+        hintlabel = tk.Label(self.preset_window, text='', anchor=tk.W)
+
+        f_buttons = tk.Frame(self.preset_window)
+
+        self.preset_name_E = gui_things.Entry(f_buttons, width=30, hint='', hint_destination=hintlabel)
+        self.preset_name_E.delete(0, tk.END)
+        self.preset_name_E.insert(0, filename)
+        self.preset_name_E.pack(side=tk.LEFT, padx=5)
+
+        logo_savepreset = tk.PhotoImage(data=gui_things.PL_save)
+        B_savepreset = gui_things.Button(f_buttons, image=logo_savepreset, hint='save current selection as preset', hint_destination=hintlabel, command=lambda : self._save(hintlabel))
+        B_savepreset.pack(side=tk.LEFT)
+        B_savepreset.image = logo_savepreset
+
+        f_buttons.pack(anchor=tk.W, padx=5, pady=5)
+
+        hintlabel.pack(anchor=tk.W)
+
+    def _save(self, hintlabel):
+        """Save preset window"""
+        preset = self.SPT.get()
+        filename = self.preset_name_E.get()
+        if preset != ():
+
+            if filename.replace(' ','') != '':
+                naaobject._save_preset_datum(preset, filename)
+
+                #update scrollable listbox
+                presets_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')]
+                self.PST_LB._update(presets_list)
+
+                message = 'preset successfully saved'
+            else:
+                message = 'invalid name'
+        else:
+            message = 'selection cannot be empty'
+        hintlabel.configure(text=message)
+
+
 class SelfShieldingdatabaseWindow:
+    """Subwindow Self-shielding of the Databases window"""
     def __init__(self, parent, M, title):
         self.shieldshow_window = None
         m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
@@ -650,6 +807,7 @@ class SelfShieldingdatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def see_ss(self, parent, M):
+        """Show info for selected self-shielding database"""
         if self.SS_LB.get_selection() is not None:
             if self.shieldshow_window is not None:
                 try:
@@ -686,6 +844,7 @@ class SelfShieldingdatabaseWindow:
 
     
 class COIdatabaseWindow:
+    """Subwindow COI of the Databases window"""
     def __init__(self, parent, M, title):
         self.coishow_window = None
         m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
@@ -708,8 +867,10 @@ class COIdatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def see_coi(self, parent, M):
+        """Show info for selected COI database"""
 
         def condensed_type(type_line):
+            """Return a condensed info for a COI line"""
             splits = type_line.split(' : ')
             if len(splits) == 1 and splits[0] == '':
                 return 'no coincidences'
@@ -769,6 +930,7 @@ class COIdatabaseWindow:
 
 
 class NeutronFluxdatabaseWindow:
+    """Subwindow Neutron flux of the Databases window"""
     def __init__(self, parent, M, title):
         self.facilitydisplay_window = None
         m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
@@ -795,6 +957,7 @@ class NeutronFluxdatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def delete_facility_data(self, parent, M):
+        """Delete data for the selected facility"""
         facilityname = self.facility_LB.get_selection()
 
         if self.facilitydisplay_window is not None:
@@ -814,6 +977,7 @@ class NeutronFluxdatabaseWindow:
             M.hintlabel.configure(text='no facility is selected')
 
     def _facility_as_text_display(self, data, spaces=[15,8,12,12,10,10,10,10]):
+        """Return info concerning irradiation facility"""
 
         def text_cut(text,limit):
             if len(text) > limit - 1:
@@ -824,6 +988,7 @@ class NeutronFluxdatabaseWindow:
         return [f'{text_cut(idx,spaces[0])}{format(pos,".1f").ljust(spaces[1])}{mtime.strftime("%d/%m/%Y").rjust(spaces[2]," ")}{dtime.strftime("%d/%m/%Y").rjust(spaces[3]," ")}{format(ff,".2f").rjust(spaces[4]," ")}{format(aa,".5f").rjust(spaces[5]," ")}{format(thermal,".2e").rjust(spaces[6]," ")}{format(fast,".2e").rjust(spaces[7]," ")}' for idx, pos, mtime, dtime, ff, aa, thermal, fast in zip(data['channel_name'], data['pos'], data['m_datetime'], data['datetime'], data['f_value'], data['a_value'], data['thermal_flux'], data['fast_flux'])]
 
     def display_facility(self, parent, M):
+        """Display irradiation facility window"""
 
         if self.facility_LB.get_selection() is not None:
             self.f_index = self.facility_LB.get_selection()
@@ -896,6 +1061,7 @@ class NeutronFluxdatabaseWindow:
             self.hintlabel.pack(anchor=tk.NW)
 
     def delete_selected_entry_data(self, parent, M):
+        """Delete selected irradiation facility"""
         facilityindex = self.selected_facility_LB.curselection()
         try:
             facilityindex = facilityindex[0]
@@ -926,6 +1092,7 @@ class NeutronFluxdatabaseWindow:
             self.hintlabel.configure(text='no entry is selected')
 
     def plot_facility_data(self, M):
+        """Plot info related to irradiation facility (f, a, fluxes)"""
         data = self.ch_data[self.ch_data['channel_name'] == self.f_index]
 
         mainoptions = {'linestyle' : '', 'marker' : 'o', 'markersize' : 3, 'markerfacecolor' : M.settings.get('color01'), 'color' : 'k', 'elinewidth' : 0.75}
@@ -1045,6 +1212,7 @@ class NeutronFluxdatabaseWindow:
 
 
 class DetectorCharacterizationdatabaseWindow:
+    """Subwindow Detector characterization of the Databases window"""
     def __init__(self, parent, M, title):
         self.detectorcharacterizationmodify_window = None
         self.peaklist_window = None
@@ -1078,6 +1246,7 @@ class DetectorCharacterizationdatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def delete_detector_characterization(self, parent, M):
+        """Delete selected Detector characterization"""
         detname = self.detector_chr_LB.get_selection()
 
         if self.detectorcharacterizationmodify_window is not None:
@@ -1097,6 +1266,7 @@ class DetectorCharacterizationdatabaseWindow:
             M.hintlabel.configure(text='no detector characterization is selected')
 
     def add_detector_characterization(self, parent, M):
+        """Add new Detector characterization"""
         if self.detectorcharacterizationmodify_window is not None:
             try:
                 self.detectorcharacterizationmodify_window.destroy()
@@ -1105,6 +1275,7 @@ class DetectorCharacterizationdatabaseWindow:
         self.detectcharactmodification_form(parent, M)
 
     def modify_detector_characterization(self, parent, M):
+        """Modify selected Detector characterization"""
         filename = self.detector_chr_LB.get_selection()
         if filename is not None:
             if self.detectorcharacterizationmodify_window is not None:
@@ -1117,6 +1288,7 @@ class DetectorCharacterizationdatabaseWindow:
             M.hintlabel.configure(text='no detector characterization is selected')
 
     def detectcharactmodification_form(self, parent, M, characterization=None):
+        """Modify Detector characterization window"""
         self.detectorcharacterizationmodify_window = tk.Toplevel(parent)
         if characterization is not None:
             title = f'Display existing characterization ({characterization.name})'
@@ -1323,6 +1495,7 @@ class DetectorCharacterizationdatabaseWindow:
         self.plot_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._update_plot())
 
     def _display_fit_information(self):
+        """Display Detector characterization info"""
         if self.plot_CB.get() != '':
             text = ''
             if self.plot_CB.get() == 'reference efficiency':
@@ -1381,6 +1554,7 @@ class DetectorCharacterizationdatabaseWindow:
             STB.pack(anchor=tk.NW, fill=tk.X, expand=True, padx=5, pady=5)
     
     def _update_plot_labels(self):
+        """Update plot labels based on the selection displayed from the drop down menu"""
         labels = []
         for item in self.characterization_results.keys():
             if item == 'energy characterization':
@@ -1407,6 +1581,7 @@ class DetectorCharacterizationdatabaseWindow:
         self._update_plot()
 
     def save_characterization(self, hintlabel):
+        """Save elaboration into a Detector characterization"""
         proceed = True
 
         if self.char_name_E.get().replace(' ','') == '':
@@ -1447,6 +1622,7 @@ class DetectorCharacterizationdatabaseWindow:
             hintlabel.configure(text='Error occurred, failed to save! Update elaboration and retry')
 
     def elaborate_characterization(self, hintlabel):
+        """Elaborate data, multi-step process"""
         proceed = True
 
         if self.char_name_E.get().replace(' ','') == '':
@@ -1579,12 +1755,14 @@ class DetectorCharacterizationdatabaseWindow:
             hintlabel.configure(text='incomplete information provided')
 
     def linear_d0(self, X, p):
+        """Return Y line fit from X array and parameters"""
         #filter non-physical values
         ret = -(-p[0]*np.power(X,2) + p[2]) / (2*p[0]*X + p[1])
         ret[ret >= 0.0] = np.nan
         return ret
 
     def ulinear_d0(self, X, p, mcov):
+        """Return u(Y) from X array, parameters and covariance matrix"""
         scp0 = (p[1]*np.power(X,2) + 2*p[2]*X) / np.power(2*p[0]*X + p[1], 2)
         scp1 = (-p[0]*np.power(X,2) + p[2]) / np.power(2*p[0]*X + p[1], 2)
         scp2 = -1 / (2*p[0]*X + p[1])
@@ -1594,6 +1772,7 @@ class DetectorCharacterizationdatabaseWindow:
         return np.array([np.sqrt((values.T@mcov)@values) for values in sc_stack.T])
 
     def _update_plot(self):
+        """Draw the fitting plot depending on the selection from the deop down menu"""
         self.SF_axes.clear()
         if self.plot_CB.get() != '':
             if self.plot_CB.get() == 'reference efficiency':
@@ -1674,6 +1853,7 @@ class DetectorCharacterizationdatabaseWindow:
         self.SF_canvas.draw()
 
     def fit_draw(self, parameters, low_point=100, high_point=3000, N=500, MeV=True):
+        """Return the axis data (x, y) of the fitting equation given the parameters argument; if parameters is an array of lenght 2 a line fit is performed while if parameters is an array of lenght 6 the exponential polynomial formula is adopted"""
         total_esp = [1, 0, -1, -2, -3, -4]
         if len(parameters) == 6:
             esp = total_esp
@@ -1688,6 +1868,7 @@ class DetectorCharacterizationdatabaseWindow:
         return X, parameters@W.T
     
     def _fit_linear(self, X, Y, esp, rel=False):
+        """Return the result (parameters, covariance matrix, residuals) of a linear fit; if rel is True relative residuals are returned instead"""
         W = X[:, np.newaxis]**esp
         I = np.identity(W.shape[0])
         parameters = np.linalg.inv(W.T@W)@(W.T@Y)
@@ -1700,6 +1881,7 @@ class DetectorCharacterizationdatabaseWindow:
         return parameters, mcov, residuals
 
     def _d0p_fit(self, X, Y, limit=100):
+        """Return the result (parameters, covariance matrix, residuals) of a linearized fit; while initially a 5 parameters fit a check on the relative uncertainty of parameters is performed and if this exceeds {limit}% the parameter is dropped (unless 4 parameters remain)"""
         X = X / 1000
         Y = np.log(np.abs(Y))
         esp = [1, 0, -1, -2, -3]
@@ -1725,6 +1907,7 @@ class DetectorCharacterizationdatabaseWindow:
         return fparameters, fmcov, residuals
     
     def _efficiency_fit(self, X, Y, limit=100):
+        """Return the result (parameters, covariance matrix, residuals) of a linearized fit; while initially a 6 parameters fit a check on the relative uncertainty of parameters is performed and if this exceeds {limit}% the parameter is dropped (unless 4 parameters remain)"""
         X = X / 1000
         Y = np.log(Y)
         esp = [1, 0, -1, -2, -3, -4]
@@ -1750,6 +1933,7 @@ class DetectorCharacterizationdatabaseWindow:
         return fparameters, fmcov, residuals
     
     def _PT_fit(self, X, Y):
+        """Return Peak-to-total fitting parameters (threshold energy, linear parameters, linear covariance matrix, polynomial parameters, polynomial covariance matrix)"""
         optimized_E, optimized_param_L, optimized_cov_L, optimized_param_P, optimized_cov_P, _ = None, None, None, None, None, None
         limit, parameters_L, cov_L, parameters_P, cov_P = 0, np.array([0.0, 0.0]), np.array([[1.0, 0.0], [0.0, 1.0]]), np.array([0.0, 0.0, 0.0]), np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
         try:
@@ -1787,13 +1971,16 @@ class DetectorCharacterizationdatabaseWindow:
         return optimized_E, optimized_param_L, optimized_cov_L, optimized_param_P, optimized_cov_P
 
     def residual_minimization_func(self, params, x, y):
+        """Return sum of residuals squared for the polynomial part of the PT fit"""
         residuals = [y_data - self.PT_func_poly(x_data, *params) for x_data, y_data in zip(x,y)]
         return np.sum(np.power(residuals,2))
 
     def PT_func_poly(self, x, a1, a2, a3):
+        """Return Y axis data for the polynomial part of the PT fit"""
         return a1*np.power(x,2) + a2*x + a3
 
     def specifit_PT_fit(self, X, Y, E):
+        """Return Peak-to-total fitting parameters (threshold energy, linear parameters, linear covariance matrix, polynomial parameters, polynomial covariance matrix) for a defined threshold energy E"""
         x_data_selector = X > E
         x_data, y_data = X[x_data_selector], Y[x_data_selector]
         x_data, y_data = np.log10(x_data), np.log10(y_data)
@@ -1817,6 +2004,7 @@ class DetectorCharacterizationdatabaseWindow:
         return E, lparam, lcov, pparam, pcov, allres
 
     def get_data_to_fit(self):
+        """Return basic data for the fitting procedure (channel array, energy array, FWHM array, efficiency array, index of corresponding line in the peaklist, efficiency uncertainty array, warnings)"""
         #do something under the hood
         fit_ch = []  # mean(axis=1) #maybe single
         fit_en = []  # single       #maybe single
@@ -1854,6 +2042,7 @@ class DetectorCharacterizationdatabaseWindow:
         return np.array(fit_ch), np.array(fit_en), np.array(fit_fw), np.array(fit_efy), np.array(index), np.array(u_efy), warnings
     
     def get_PTdata_to_fit(self, coifree):
+        """Return Peak-to-total (value, uncertainty) for a set of coifree emissions"""
         keys = sorted([(key, value.fdistance()) for key, value in self.temporary_positions.items()], key=lambda x:x[1], reverse=True)
 
         fit_C = []
@@ -1889,6 +2078,7 @@ class DetectorCharacterizationdatabaseWindow:
         return fit_C, fit_uC
     
     def get_coifreedata_to_fit(self, coifree):
+        """Return count rate data (value, uncertainty) for a set of coifree emissions"""
         keys = sorted([(key, value.fdistance()) for key, value in self.temporary_positions.items() if key != 'reference'], key=lambda x:x[1], reverse=True)
 
         ref_pos = self.temporary_positions.get('reference')
@@ -1949,6 +2139,7 @@ class DetectorCharacterizationdatabaseWindow:
         return fit_C, fit_uC
 
     def _get_PT_result(self, emission_found, local):
+        """Return Peak-to-total (value, uncertainty) for a specific emission"""
         if len(emission_found) == 1:
             bestchoice = emission_found[0]
             spct = local[0]
@@ -1966,6 +2157,7 @@ class DetectorCharacterizationdatabaseWindow:
         return PT, uPT#PT, uPT
     
     def _get_best_result(self, emission_found, local, measurand='CR'):
+        """Return measurand (energy, {measurand}, {measurand} uncertainty, message) where {measurand} can be count rate (CR) or activity (any other string) for a specific emission"""
         if len(emission_found) == 1:
             bestchoice = emission_found[0]
             spct = local[0]
@@ -1979,6 +2171,7 @@ class DetectorCharacterizationdatabaseWindow:
         return bestchoice[0].energy, bestchoice[1][0], bestchoice[1][6], eff, ueff, message #energy, channel, FWHM, efficiency, uefficiency
 
     def _activity_or_CR(self, bestchoice, spct, measurand='CR'):
+        """Return measurand (value, uncertainty) where measurand can be count rate (CR) or activity (any other string) for a specific emission"""
         mu = self.temporary_detector.mu
         NPA, uNPA = bestchoice[1][4], bestchoice[1][5]
         _lbd = bestchoice[0].line['lambda']
@@ -1994,13 +2187,8 @@ class DetectorCharacterizationdatabaseWindow:
         uEFF = EFF * uNPA / NPA
         return EFF, uEFF
         
-        
-        
-
-
-
-        
     def visualize_dec(self, parent):
+        """Display detector info"""
         if self.temporary_detector is not None:
             TPDEC = tk.Toplevel(parent)
             TPDEC.title(f'Detector: {self.temporary_detector.name}')
@@ -2024,6 +2212,7 @@ class DetectorCharacterizationdatabaseWindow:
             tk.Label(TPDEC, text=f'{self.temporary_detector.u_mu:.4f}', width=10, anchor=tk.W).grid(row=7, column=2, sticky=tk.W, padx=5)
 
     def go_to_opencharacterizationspectra(self, M):
+        """Recall spectra files for detecotr characterization"""
         #close children if necessary
         if self.temporary_source is not None:
             database = self.temporary_source.data.copy()
@@ -2046,9 +2235,11 @@ class DetectorCharacterizationdatabaseWindow:
         self._update_spectralist()
 
     def _update_spectralist(self):
+        """Update the list of spectra"""
         self.spectra_LB._update([item.filename() for item in self.temporary_positions[self.positions_CB.get()].spectra])
 
     def add_position(self):
+        """Add a new counting position to the position list"""
         if self.peaklist_window is not None:
             try:
                 self.peaklist_window.destroy()
@@ -2064,6 +2255,7 @@ class DetectorCharacterizationdatabaseWindow:
         self.select_position()
 
     def rename_position(self, hintlabel):
+        """Rename a counting position; automatically checks integrity of inserted string"""
 
         def check_function(string):
             response = True
@@ -2116,6 +2308,7 @@ class DetectorCharacterizationdatabaseWindow:
             entry.bind('<FocusOut>', lambda event: command_esc())
 
     def delete_position(self, parent):
+        """Delete the selected counting position"""
         if self.peaklist_window is not None:
             try:
                 self.peaklist_window.destroy()
@@ -2130,6 +2323,7 @@ class DetectorCharacterizationdatabaseWindow:
                 self.select_position()
 
     def select_sourceemissions(self, parent):
+        """Select emission from list of emissions of the gamma source"""
         if self.temporary_source is not None:
 
             if self.emissionselectionwindow is not None:
@@ -2151,6 +2345,7 @@ class DetectorCharacterizationdatabaseWindow:
             self.sourcemiss.listbox.bind('<Double-Button-1>', lambda e='<Double-Button-1>' : self.double_click_event())
 
     def double_click_event(self):
+        """Double click to select/deselect emission line"""
         emission_index = self.sourcemiss.curselection()
         try:
             emission_index = emission_index[0]
@@ -2164,6 +2359,7 @@ class DetectorCharacterizationdatabaseWindow:
             self.sourcemiss.listbox.selection_clear(emission_index)
 
     def select_background(self, parent):
+        """Recall spectra files to adopt as background for PT evaluation"""
         filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))
         limit_s = 40
         try:
@@ -2182,14 +2378,17 @@ class DetectorCharacterizationdatabaseWindow:
         self.label_background_name.configure(text=txt)
 
     def select_distance(self):
+        """Assign distance of the selected position"""
         self.temporary_positions[self.positions_CB.get()].distance = self.nominaldistance_E.variable.get()
 
     def select_position(self):
+        """Update info related to the selected position"""
         c_position = self.temporary_positions[self.positions_CB.get()]
         self.nominaldistance_E.variable.set(c_position.distance)
         self._update_spectralist()
 
     def select_source(self, M):
+        """Update info related to the selected gamma source"""
         if self.peaklist_window is not None:
             try:
                 self.peaklist_window.destroy()
@@ -2212,9 +2411,11 @@ class DetectorCharacterizationdatabaseWindow:
                 self.temporary_positions[posx].spectra[nn].discriminate_peaks(database, M.settings.get('energy tolerance'))
 
     def select_detector(self):
+        """Update info related to the selected detector"""
         self.temporary_detector = naaobject.Detector(f'{self.detector_name_E.get()}.dec')
 
     def characterization_peaklist(self, M):
+        """Open peaklist window for characterization spectra"""
         try:
             idx = self.spectra_LB.curselection()[0]
         except IndexError:
@@ -2234,19 +2435,23 @@ class DetectorCharacterizationdatabaseWindow:
 
 
 class NominalCountingPosition:
+    """Class describing a counting position for detector characterization"""
     def __init__(self, name):
         self.name = name
         self.distance = '0.0'
         self.spectra = []
 
     def fdistance(self):
+        """Return distance as float"""
         return float(self.distance)
 
     def npos(self):
+        """Return number of spectra recalled for the position"""
         return len(self.spectra)
     
 
 class CharacterizationPeaklistWindow:
+    """Class describing the peaklist window for detector characterization spectra"""
     def __init__(self, parent, spectralist, index, cheight=25, background=None):
         self.SpectrumPlotSubwindow = None
         self.SpectrumProfileSubwindow = None
@@ -2323,16 +2528,19 @@ class CharacterizationPeaklistWindow:
         B_show_options.configure(command=lambda : self.clear_emission_assignment(parent, spectralist.spectra[self.index]))
 
     def stringass(self, ass, sus):
+        """Return string of the assigned emission from the database"""
         if sus > -1:
             return ass[sus].emission
         return ''
     
     def lenass(self, ass):
+        """Return number of compatible database entries for a certain line"""
         if len(ass) > 0:
             return f'({len(ass)})'
         return ''
 
     def show_spectrum_info(self, parent, spectrum):
+        """Open the spectrum info subwindow"""
         if self.SpectrumProfileSubwindow is not None:
             self.SpectrumProfileSubwindow.focus()
         else:
@@ -2388,6 +2596,7 @@ class CharacterizationPeaklistWindow:
             self.SpectrumProfileSubwindow.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(self.SpectrumProfileSubwindow))
 
     def show_spectrum_plot(self, parent, spectrum, centroid=None):
+        """Open the spectrum plot subwindow"""
         if self.SpectrumPlotSubwindow is not None:
             self.SpectrumPlotSubwindow.focus()
         else:
@@ -2461,7 +2670,7 @@ class CharacterizationPeaklistWindow:
                 optionframe.grid(row=0, column=1, rowspan=2, sticky=tk.NSEW, padx=5, pady=5)
 
     def display_background(self):
-        pass
+        """Display background profile on plot"""
         if self.display_backgroundV.get() == 0:
             self.background_counts[0].set_ydata(np.array([np.nan] * len(self.background_counts[0].get_xdata())))
             self.SpectrumPlotSubwindow.canvas.draw()
@@ -2474,6 +2683,7 @@ class CharacterizationPeaklistWindow:
                 self.SpectrumPlotSubwindow.canvas.draw()
 
     def re_center_plot(self, peak_centroid, spectrum):
+        """Center the limits of the plot around the selected peak"""
         if self.SpectrumPlotSubwindow is not None:
 
             centroid = peak_centroid
@@ -2492,6 +2702,7 @@ class CharacterizationPeaklistWindow:
             self.SpectrumPlotSubwindow.canvas.draw()
 
     def on_motion(self, event, spectrum):
+        """Display x, y, coordinates while moving the mouse over the plot"""
         #mouse motion on spectrum profile
         text=''
         if event.xdata is not None and event.ydata is not None:
@@ -2502,6 +2713,7 @@ class CharacterizationPeaklistWindow:
         self.coordinates.configure(text=text)
 
     def _update_spectrum_info(self, spectrum):
+        """Update spectrum info"""
         self.filenameL.configure(text=spectrum.filename())
         self.startacquisitionL.configure(text=spectrum.readable_datetime())
         self.realL.configure(text=f'{spectrum.real_time:.2f} s ({spectrum.real_time/3600:.2f} h)')
@@ -2514,6 +2726,7 @@ class CharacterizationPeaklistWindow:
         self.psfileL.configure(text=spectrum.peak_summary(8)[1])
 
     def on_scroll(self, event, spectrum):
+        """Move limits of plot while scrolling with mouse over the plot"""
         #Scroll spectrum profile
         if event.xdata is not None and event.ydata is not None:
             current_limits = self.SpectrumPlotSubwindow.ax.get_xlim()
@@ -2535,6 +2748,7 @@ class CharacterizationPeaklistWindow:
             self.on_motion(event, spectrum)
     
     def select_item_from_tree(self, parent, spectrum):
+        """Select peak from peaklist"""
         curItem = self.tree.focus()
         item_index = self.tree.index(curItem)
         values = self.tree.item(curItem, 'values')
@@ -2543,6 +2757,7 @@ class CharacterizationPeaklistWindow:
             self.show_peak_info(parent, spectrum, item_index)
 
     def clear_emission_assignment(self, parent, spectrum):
+        """Clear selection from peaklist"""
         if messagebox.askyesno(title='Clear assigned emissions', message=f'\nAre you sure to clear\nall currently assigned emissions?\n', parent=parent):
 
             try:
@@ -2556,6 +2771,7 @@ class CharacterizationPeaklistWindow:
                 self.tree.set(nn, column='emitter', value='')
 
     def show_peak_info(self, parent, spectrum, item_index):
+        """Display info about selected peak"""
         self.item_index = item_index
         if self.PeakInformationSubwindow is not None:
             self.PeakInformationSubwindow.focus()
@@ -2651,18 +2867,21 @@ class CharacterizationPeaklistWindow:
             self.PeakInformationSubwindow.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(self.PeakInformationSubwindow))
 
     def confirm_emission_assignment(self, spectrum):
+        """Assign database entry to selected peak"""
         if self.emissionslist_CB.get() != '':
             idx = self.emissionslist_CB['values'].index(self.emissionslist_CB.get())
             spectrum.assigned_peaks[self.item_index] = idx
             self.tree.set(self.item_index, column='emitter', value=spectrum.suspected_peaks[self.item_index][idx].emission)
 
     def cancel_emission_assignment(self, spectrum):
+        """Clear assigned database entry to selected peak"""
         self.emissionslist_CB.set('')
         spectrum.assigned_peaks[self.item_index] = -1
         self.tree.set(self.item_index, column='emitter', value='')
         self._update_peakinfo(spectrum)
 
     def on_closing(self, window):
+        """Integrity check while closing subwindows"""
         if window == self.SpectrumProfileSubwindow:
             self.SpectrumProfileSubwindow.destroy()
             self.SpectrumProfileSubwindow = None
@@ -2674,11 +2893,13 @@ class CharacterizationPeaklistWindow:
             self.PeakInformationSubwindow = None
 
     def _select_CB_assigned(self, spectrum):
+        """Update info about assigned database entry"""
         index = self.emissionslist_CB['values'].index(self.emissionslist_CB.get())
         infos = spectrum.suspected_peaks[self.item_index][index]
         self._update_assignedinfo(infos)
 
     def _update_peakinfo(self, spectrum):
+        """Update info about selected peak"""
         line = spectrum.peak_list[self.item_index]
         self.channel_F.configure(text=f'{line[0]:.2f}')
         self.energy_F.configure(text=f'{line[2]:.2f} keV')
@@ -2706,6 +2927,7 @@ class CharacterizationPeaklistWindow:
         self._update_assignedinfo(infos)
 
     def _update_assignedinfo(self, infos):
+        """Update info about selected peak"""
         if infos is not None:
             self.Eisotope_F.configure(text=f'{infos.target}')
             self.Eenergy_F.configure(text=f'{infos.energy:.1f}')
@@ -2718,6 +2940,7 @@ class CharacterizationPeaklistWindow:
             self.Eyield_F.configure(text='')
 
     def recvalues(self, value, par):
+        """Return recommended values for some database entries"""
         none = (lambda x : np.nan, '.2f')
         parameters = {'Q0':(lambda x : '20', '.2f'), 'Er':(lambda x : '50', '.2f'), 'k0':(lambda x : '5', '.2f'), 'gy':(lambda x : str(x), '.3f')}
         opt = parameters.get(par, none)
@@ -2733,6 +2956,7 @@ class CharacterizationPeaklistWindow:
 
 
 class DetectordatabaseWindow:
+    """Class describing Detector database window"""
     def __init__(self, parent, M, title):
         self.detectormodify_window = None
         m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
@@ -2765,6 +2989,7 @@ class DetectordatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def delete_detector(self, parent, M):
+        """Delete Detector"""
         detname = self.detector_LB.get_selection()
 
         if self.detectormodify_window is not None:
@@ -2784,6 +3009,7 @@ class DetectordatabaseWindow:
             M.hintlabel.configure(text='no detector is selected')
 
     def add_detector(self, parent, M):
+        """Add Detector"""
         if self.detectormodify_window is not None:
             try:
                 self.detectormodify_window.destroy()
@@ -2792,6 +3018,7 @@ class DetectordatabaseWindow:
         self.detectmodification_form(parent, M)
 
     def modify_detector(self, parent, M):
+        """Modify Detector"""
         filename = self.detector_LB.get_selection()
         if filename is not None:
             if self.detectormodify_window is not None:
@@ -2804,6 +3031,7 @@ class DetectordatabaseWindow:
             M.hintlabel.configure(text='no detector is selected')
 
     def detectmodification_form(self, parent, M, detector=None):
+        """Modify Detector window"""
         self.detectormodify_window = tk.Toplevel(parent)
         try:
             title = f'Modify detector ({detector.name})'
@@ -2893,6 +3121,7 @@ class DetectordatabaseWindow:
         self.detectormodify_window.hintlabel.grid(row=8, column=0, columnspan=4, sticky=tk.W)
 
     def save_detector(self, Shintlabel):
+        """Save Detector"""
         detector_name = self.detectorname_F.get()
 
         valid_numbers = True
@@ -2927,6 +3156,7 @@ class DetectordatabaseWindow:
 
 
 class SourcedatabaseWindow:
+    """Class describing the gamma source window"""
     def __init__(self, parent, M, title):
         self.sourcemodify_window = None
         m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
@@ -2963,6 +3193,7 @@ class SourcedatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def merge_source(self, parent, M):
+        """Open merge sources subwindow"""
         if self.sourcemodify_window is not None:
             try:
                 self.sourcemodify_window.destroy()
@@ -2971,6 +3202,7 @@ class SourcedatabaseWindow:
         self.merge_source_form(parent, M)
 
     def delete_source(self, parent, M):
+        """Delete selected source"""
         sourcename = self.source_LB.get_selection()
         if self.source_LB.get_selection() is not None:
             if self.sourcemodify_window is not None:
@@ -2988,6 +3220,7 @@ class SourcedatabaseWindow:
             M.hintlabel.configure(text='no source is selected')
 
     def add_source(self, parent, M):
+        """Add gamma source"""
         if self.sourcemodify_window is not None:
             try:
                 self.sourcemodify_window.destroy()
@@ -2996,6 +3229,7 @@ class SourcedatabaseWindow:
         self.sourcemodification_form(parent, M)
 
     def modify_source(self, parent, M):
+        """Modify selected source"""
         filename = self.source_LB.get_selection()
         if filename is not None:
             if self.sourcemodify_window is not None:
@@ -3008,6 +3242,7 @@ class SourcedatabaseWindow:
             M.hintlabel.configure(text='no source is selected')
 
     def display_dataframe(self):
+        """Display source info"""
         req_infos = ['energy', 'emitter','activity', 'yield','t_half','COIfree']
 
         if self.sourcedata.empty:
@@ -3019,12 +3254,14 @@ class SourcedatabaseWindow:
             return '\n'.join([f'{self.formatter_function(float(energy)).ljust(9)}{emitter.ljust(9)}{self.formatter_function(activity).rjust(11)}{self.formatter_function(gyield).rjust(8)}{self.formatter_function(t_half).rjust(11)}{str(COI).rjust(7)}' for energy,emitter,activity,gyield,t_half,COI in zip(*[part_data[i] for i in part_data.columns])])
 
     def formatter_function(self, x, limit=1e6,fformat='.1f',eformat='.2e'):
+        """Return suitably formatted half-life info"""
         if x > -limit and x < limit:
             return format(x,fformat)
         else:
             return format(x,eformat)
 
     def sourcemodification_form(self, parent, M, source=None):
+        """Modify source subwindow"""
         self.sourcemodify_window = tk.Toplevel(parent)
         try:
             title = f'Modify source ({source.name})'
@@ -3151,6 +3388,7 @@ class SourcedatabaseWindow:
         self.energy_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.select_emission(M))
 
     def save_source(self, Shintlabel):
+        """Save gamma source"""
         source_name = self.source_name_F.get()
 
         if source_name.replace(' ', '') != '' and not self.sourcedata.empty:
@@ -3171,6 +3409,7 @@ class SourcedatabaseWindow:
             Shintlabel.configure(text='invalid name or emission data')
 
     def add_modify_emission(self, Shintlabel, unit_conversions=(1,3600,86400)):
+        """Manage single emission from source"""
         good_ending, message_text = True, 'successful'
         element_list = ('H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn','Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn','Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg','Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No','Lr','Rf','Db','Sg','Bh','Hs','Mt','Ds','Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og')
         D_emitter = self.emitter_CB.get()
@@ -3259,6 +3498,7 @@ class SourcedatabaseWindow:
         Shintlabel.configure(text=message_text)
 
     def add_data_to_source(self, D_energy, D_emitter, D_activity, D_uactivity, D_yield, D_uyield, D_halflife):
+        """Add data to existing source"""
         df_new = pd.DataFrame(data=[[D_energy, D_emitter, D_activity, D_uactivity, D_yield, D_uyield, D_halflife, self.checkbox_variable.get(), np.nan, '']], index=None, columns=['energy', 'emitter', 'activity', 'u_activity', 'yield', 'u_yield', 't_half', 'COIfree', 'lambda', 'reference'])
         df_new['COIfree'] = df_new['COIfree'].astype(int).astype(bool)
         df_new['lambda'] = np.log(2)/df_new['t_half']
@@ -3271,6 +3511,7 @@ class SourcedatabaseWindow:
             self.sourcedata.sort_values(by='energy', key=lambda x : [float(i) for i in x], inplace=True, ignore_index=True)
 
     def select_emitter(self, M, unit_conversions=(1,1/3600,1/86400)):
+        """Select emitter"""
         dataline = self.sourcedata.loc[self.sourcedata['emitter'] == self.emitter_CB.get(), self.sourcedata.columns]
         if dataline.empty:
             activity, uactivity, t_half = '', '', ''
@@ -3301,6 +3542,7 @@ class SourcedatabaseWindow:
             self.checkbox_variable.set(0)
 
     def select_emission(self, M):
+        """Select emission"""
         linevalues = self.emission_subdata.loc[self.emission_subdata['energy'] == self.energy_CB.get()]
         yield_value, yield_unc, COIfree_value = linevalues.iloc[0, 1], linevalues.iloc[0, 2], linevalues.iloc[0, 3]
         self.yield_F.delete(0, tk.END)
@@ -3310,6 +3552,7 @@ class SourcedatabaseWindow:
         self.checkbox_variable.set(int(COIfree_value))
 
     def change_unit(self, B_unit, unit_list, halflife_label, unit_conversions=(1,1/3600,1/86400)):
+        """Change time unit (cycles through seconds, hours, days)"""
         if self.unit_index < len(unit_list) - 1:
             self.unit_index += 1
         else:
@@ -3327,6 +3570,7 @@ class SourcedatabaseWindow:
             pass
 
     def delete_from_source(self, parent, Shintlabel, switch=0):
+        """Delete emission/emitter from source"""
         D_emitter = self.emitter_CB.get()
         try:
             D_energy = float(self.energy_CB.get())
@@ -3357,6 +3601,7 @@ class SourcedatabaseWindow:
         Shintlabel.configure(text=message_text)
 
     def merge_source_form(self, parent, M):
+        """Merge source subwindow"""
         self.sources_list = []
         self.sourcedata = pd.DataFrame(data={}, columns=['energy','emitter','activity','yield','t_half','COIfree', 'lambda', 't_half', 'reference'])
         self.sourcemodify_window = tk.Toplevel(parent)
@@ -3446,6 +3691,7 @@ class SourcedatabaseWindow:
         self.sourcemodify_window.hintlabel.grid(row=10, column=0, columnspan=3, sticky=tk.W)
 
     def moveupanddown_inlist(self, Shintlabel, direction=0):
+        """Move down source within list"""
         try:
             move_index = self.merge_source_LB.curselection()[0]
         except IndexError:
@@ -3461,6 +3707,7 @@ class SourcedatabaseWindow:
             Shintlabel.configure(text='source is not selected')
 
     def deleteitem_inlist(self, parent):
+        """Delete item from source list"""
         if self.merge_source_LB.get_selection() is not None:
             if messagebox.askyesno(title='Undo selection', message=f'\nAre you sure to unselect the gamma source: {self.merge_source_LB.get_selection()}?\n', parent=parent):
                 self.sources_list.pop(self.merge_source_LB.curselection()[0])
@@ -3472,6 +3719,7 @@ class SourcedatabaseWindow:
             parent.hintlabel.configure(text='source is not selected')
 
     def move_reference_date(self, source, reference_date):
+        """Change reference date"""
         decay = reference_date - source.datetime
         sdata = source.data.copy()
         sdata['activity'] = sdata['activity'] * np.exp(-sdata['lambda'] * decay.total_seconds())
@@ -3479,6 +3727,7 @@ class SourcedatabaseWindow:
         return sdata.loc[activity_filter]
 
     def merge_sources(self, Shintlabel):
+        """Merge sources"""
         proceed = True
         if len(self.sources_list) < 2:
             Shintlabel.configure(text='few sources to merge')
@@ -3523,6 +3772,7 @@ class SourcedatabaseWindow:
                 Shintlabel.configure(text='no emission data')
 
     def add_source_to_mergesourcelist(self, Shintlabel):
+        """Change reference date"""
         if self.selectionsource_CB.get() != '':
             source = naaobject.GammaSource(f'{self.selectionsource_CB.get()}.sce')
             if source.name not in [si.name for si in self.sources_list]:
@@ -3535,6 +3785,7 @@ class SourcedatabaseWindow:
 
 
 class MaterialdatabaseWindow:
+    """Class describing the Material database window"""
     # only one subwindow open at a time
     def __init__(self, parent, M, title):
         self.matmodify_window = None
@@ -3567,23 +3818,25 @@ class MaterialdatabaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def _as_text_display(self, certificate, preamble='Elemental components of the sample listed in decreasing value of mass fraction, relative uncertainty (k=1) is reported while non certified values are indicated as "nan"\n\n', header=['El','x / g g⁻¹','urx / %'], unit=None, include_header=True):
-            spaces = [4,11,11]
+        """Return material info as string"""
+        spaces = [4,11,11]
+        if include_header:
+            head = f'{header[0].ljust(spaces[0]," ")}{header[1].rjust(spaces[1]," ")}{header[2].rjust(spaces[2]," ")}\n'
+        else:
+            head = ''
+        lines = sorted([(key,value[0],value[1]/value[0]) for key,value in certificate.items()], key=lambda x:x[1], reverse=True)
+        if unit == 'ppm':
+            astext = '\n'.join([f'{line[0].ljust(spaces[0]," ")}{format(line[1]*1000000,".3e").rjust(spaces[1]," ")}{format(line[2]*100,".1f").rjust(spaces[2]," ")}' for line in lines])
             if include_header:
-                head = f'{header[0].ljust(spaces[0]," ")}{header[1].rjust(spaces[1]," ")}{header[2].rjust(spaces[2]," ")}\n'
-            else:
-                head = ''
-            lines = sorted([(key,value[0],value[1]/value[0]) for key,value in certificate.items()], key=lambda x:x[1], reverse=True)
-            if unit == 'ppm':
-                astext = '\n'.join([f'{line[0].ljust(spaces[0]," ")}{format(line[1]*1000000,".3e").rjust(spaces[1]," ")}{format(line[2]*100,".1f").rjust(spaces[2]," ")}' for line in lines])
-                if include_header:
-                    header[1] = 'x / ppm'
-            else:
-                astext = '\n'.join([f'{line[0].ljust(spaces[0]," ")}{format(line[1],".3e").rjust(spaces[1]," ")}{format(line[2]*100,".1f").rjust(spaces[2]," ")}' for line in lines])
-                if include_header:
-                    header[1] = 'x / g g⁻¹'
-            return preamble+head+astext
+                header[1] = 'x / ppm'
+        else:
+            astext = '\n'.join([f'{line[0].ljust(spaces[0]," ")}{format(line[1],".3e").rjust(spaces[1]," ")}{format(line[2]*100,".1f").rjust(spaces[2]," ")}' for line in lines])
+            if include_header:
+                header[1] = 'x / g g⁻¹'
+        return preamble+head+astext
 
     def delete_material(self, parent, M):
+        """Delete selected material"""
         matname = self.material_LB.get_selection()
         if matname is not None:
             if messagebox.askyesno(title='Delete material', message=f'\nAre you sure to delete {matname} material?\n', parent=parent):
@@ -3596,6 +3849,7 @@ class MaterialdatabaseWindow:
             M.hintlabel.configure(text='no material is selected')
 
     def add_material(self, parent, M):
+        """Add material"""
         if self.matmodify_window is not None:
             try:
                 self.matmodify_window.destroy()
@@ -3604,6 +3858,7 @@ class MaterialdatabaseWindow:
         self.matmodification_form(parent, M)
 
     def modify_material(self, parent, M):
+        """Modify selected material"""
         filename = self.material_LB.get_selection()
         if filename is not None:
             if self.matmodify_window is not None:
@@ -3616,6 +3871,7 @@ class MaterialdatabaseWindow:
             M.hintlabel.configure(text='no material is selected')
 
     def matmodification_form(self, parent, M, sample=None):
+        """Modify material subwindow"""
         self.matmodify_window = tk.Toplevel(parent)
         try:
             title = f'Modify material ({sample.name})'
@@ -3748,6 +4004,7 @@ class MaterialdatabaseWindow:
         self.element_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>': self.select_combo())
 
     def select_combo(self, unit_conversions=(1,1000000,100)):
+        """Update mass fraction value of selected element"""
         self.value_F.delete(0, tk.END)
         self.uncertainty_F.delete(0, tk.END)
         if self.element_CB.get() in self.composition.keys():
@@ -3758,6 +4015,7 @@ class MaterialdatabaseWindow:
             self.uncertainty_F.insert(0, uncertainty)
 
     def change_unit(self, B_unit, unit_list, value_label, uncertainty_label, unit_conversions=(1,1000000,100)):
+        """Change unit for mass fraction of selected element (cycles through g g-1, ppm and %)"""
         if self.unit_index < len(unit_list) - 1:
             self.unit_index += 1
         else:
@@ -3783,6 +4041,7 @@ class MaterialdatabaseWindow:
             pass
 
     def update_element(self, Shintlabel, unit_conversions=(1,1000000,100)):
+        """Update mass fraction value of selected element"""
         if self.element_CB.get() in self.element_CB['values']:
             try:
                 massfractionvalue = float(self.value_F.get()) / unit_conversions[self.unit_index]
@@ -3806,6 +4065,7 @@ class MaterialdatabaseWindow:
             Shintlabel.configure(text='invalid element symbol')
 
     def delete_element(self, Shintlabel):
+        """Delete selected element"""
         if self.element_CB.get() in self.element_CB['values']:
             self.composition.pop(self.element_CB.get(),None)
             self.composition_text._update(self._as_text_display(self.composition, preamble='', include_header=False))
@@ -3813,6 +4073,7 @@ class MaterialdatabaseWindow:
             Shintlabel.configure(text='invalid element symbol')
 
     def save_material(self, Shintlabel):
+        """Save material"""
 
         def not_cert(value):
             if np.isnan(value):
@@ -3861,6 +4122,7 @@ class MaterialdatabaseWindow:
 
 
 class k0databaseWindow:
+    """Class describing the k0 database window"""
     # only one subwindow open at a time
     def __init__(self, parent, M, title):
         self.k0modify_window = None
@@ -3884,6 +4146,7 @@ class k0databaseWindow:
         m_frame.pack(padx=5, pady=5)
 
     def recall_k0(self, parent, M):
+        """Recall k0 information from selected database file"""
         outcome, message = naaobject._get_k0_database(parent)
         if outcome:
             k0database_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'k0data')) if filename.lower().endswith('.k0d')]
@@ -3891,6 +4154,7 @@ class k0databaseWindow:
         M.hintlabel.configure(text=message)
 
     def see_k0(self, parent, M):
+        """Display k0 information in subwindow"""
         if self.k0_LB.get_selection() is not None:
             if self.k0modify_window is not None:
                 try:
@@ -3927,6 +4191,7 @@ class k0databaseWindow:
 
 
 class RelINRIM_MainWindow:
+    """Class for the main Analysis window"""
     # only one subwindow open at a time
     def __init__(self, parent, M):
         M.title('INAA-INRIM Main')
@@ -4192,8 +4457,10 @@ class RelINRIM_MainWindow:
         self.standard_spectra_combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.select_spectrum(M))
 
     def save_analysis_progress(self, parent, M):
+        """Save the current analysis information into a file"""
         filetypes = (('INAAnalysis save file','*.naas'),)
-        namefile = asksaveasfilename(parent=parent, initialfile=f'{M.INAAnalysis.analysis_name}.naas', filetypes=filetypes)
+        #namefile = asksaveasfilename(parent=parent, initialfile=f'{M.INAAnalysis.analysis_name}.naas', filetypes=filetypes)
+        namefile = gui_things.decorated_asksaveasfilename(parent=parent, initialfile=f'{M.INAAnalysis.analysis_name}.naas', filetypes=filetypes)
 
         if namefile != '':
             naaobject._save_naalysis_file(M.INAAnalysis, namefile)
@@ -4203,6 +4470,7 @@ class RelINRIM_MainWindow:
             M.hintlabel.configure(text='not saved!')
 
     def show_selected_characterization_info(self, parent, M):
+        """Display selected detector charaterization info"""
         if M.INAAnalysis.characterization is not None:
             TOP = tk.Toplevel(parent)
             TOP.title('Characterization overview')
@@ -4210,6 +4478,7 @@ class RelINRIM_MainWindow:
             gui_things.ScrollableText(TOP, width=70, height=15, data=M.INAAnalysis.characterization.short_report()).pack(anchor=tk.NW, padx=5, pady=5)
 
     def check_the_analysis(self, Analysis):
+        """Display a saummary of the analysis information and highlight errors"""
 
         def thehead(nn):
             if nn == 0:
@@ -4299,6 +4568,7 @@ SPECTRA
         return '\n'.join(overview), '\n'.join(errors)
 
     def elaboration_process(self, parent, M):
+        """Start elaboration"""
         if self.secondary_window is not None:
             try:
                 self.secondary_window.destroy()
@@ -4310,16 +4580,18 @@ SPECTRA
         Results_MainWindow(parent, M, message, errors)
 
     def _update_analysis_name(self, M):
+        """Update the analysis name"""
         M.INAAnalysis.analysis_name = self.analysisname_combobox.variable.get()
 
     def update_counting_position(self, M):
+        """Update counting position information"""
         s_index = self.standard_spectra_combobox.current()
         if s_index > -1:
             if self.standard_position.get() != M.INAAnalysis.spectra[s_index].counting_position:
                 M.INAAnalysis.spectra[s_index].counting_position = self.standard_position.get()
 
     def open_blankies(self, parent, M, label):
-        #open the window for blank management
+        """Open the window for blank management"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4336,6 +4608,7 @@ SPECTRA
         BlankManagementWindow(self.secondary_window, M, label)
 
     def open_background(self, parent, M, label):
+        """Recall spectrum as background"""
         filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))
         limit_s = M.settings.get('sample statistical uncertainty limit')
         try:
@@ -4356,11 +4629,13 @@ SPECTRA
         M.hintlabel.configure(text='background spectrum imported')
 
     def close_background(self, M, label):
+        """Remove background spectrum"""
         M.INAAnalysis.background_spectrum = None
         label.configure(text='')
         M.hintlabel.configure(text='background spectrum removed')
 
     def select_characterization(self, M):
+        """Select detector characterization from drop down menu"""
         M.INAAnalysis.characterization = naaobject._call_database(self.calibration_combobox.get(), 'characterizations', 'dcr')
 
         for spectrum in M.INAAnalysis.spectra:
@@ -4374,6 +4649,7 @@ SPECTRA
         self.calibration_combobox._showhint()
 
     def go_to_distance_modifier(self, M, llabel):
+        """Open the submenu to modify counting distance for a spectrum"""
         s_index = self.standard_spectra_combobox.current()
         if 0 <= s_index < len(M.INAAnalysis.spectra) and M.INAAnalysis.characterization is not None:
             if self.secondary_window is not None:
@@ -4393,6 +4669,7 @@ SPECTRA
             M.hintlabel.configure(text='no spectrum or characterization selected')
 
     def select_spectrum(self, M):
+        """Recall spectra (both measurement and standard samples)"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4416,6 +4693,7 @@ SPECTRA
         self.standard_spectra_combobox._showhint()
 
     def delete_spectrum(self, parent, M):
+        """Delete spectrum (selected/all)"""
         s_index = self.standard_spectra_combobox.current()
         if 0 <= s_index < len(M.INAAnalysis.spectra):
             if self.delete_selector_standard.get() == 0:
@@ -4439,6 +4717,7 @@ SPECTRA
             M.hintlabel.configure(text='no spectrum selected')
 
     def go_back(self, parent, M):
+        """Return to Main window"""
         if self.secondary_window is not None:
             try:
                 self.secondary_window.destroy()
@@ -4448,7 +4727,7 @@ SPECTRA
         WelcomeWindow(parent, M)
 
     def go_to_spectrummanagement(self, M):
-        #open the window for peak inspection
+        """Open the window for peak inspection"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4472,7 +4751,7 @@ SPECTRA
             M.hintlabel.configure(text='no spectrum selected')
 
     def go_to_environmentalmanagement(self, M):
-        #open the window for environmental and balance parameters
+        """Open the window for environmental and balance parameters"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4488,7 +4767,7 @@ SPECTRA
         EnvironmentalManagementWindow(self.secondary_window, M)
 
     def go_to_measurementsamplemanagement(self, M, mslabel, idlabel, rolelabel):
-        #open the window for measurement samples record
+        """Open the window for measurement samples record"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4504,7 +4783,7 @@ SPECTRA
         MeasurementSampleManagementWindow(self.secondary_window, M, mslabel, idlabel, rolelabel)
 
     def go_to_irradiationsamplemanagement(self, M, irrlabel):
-        #open the window for irradiation record
+        """Open the window for irradiation record"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4520,6 +4799,7 @@ SPECTRA
         IrradiationSampleManagementWindow(self.secondary_window, M, irrlabel)
 
     def go_to_openspectra(self, M):
+        """Recall spectra"""
         if self.secondary_window is not None:
             try:
                 if self.secondary_window.title() in M.unclosablewindows:
@@ -4558,6 +4838,7 @@ SPECTRA
         self._update_spectra(M)
 
     def _update_spectra(self, M):
+        """Update spectrum information"""
         self.standard_spectra_combobox['values'] = [item.filename() for item in M.INAAnalysis.spectra]
         if len(M.INAAnalysis.spectra) > 0:
             s_index = len(M.INAAnalysis.spectra) - 1
@@ -4578,6 +4859,7 @@ SPECTRA
 
 
 class Results_MainWindow:
+    """Class for the Results window"""
     def __init__(self, parent, M, message, errors):
 
         M.title('INAA-INRIM Result')
@@ -4713,6 +4995,7 @@ class Results_MainWindow:
             Results_frame.pack(anchor=tk.NW, padx=5, fill=tk.X)
 
     def confirm_pairings(self, M):
+        """Confirm measurement sample - standard sample pairings for analysis"""
         new_pairing = (self.sampleCB.get(), self.standardCB.get())
         idx = -1
         for nn, pair in enumerate(M.INAAnalysis.pairings):
@@ -4727,6 +5010,7 @@ class Results_MainWindow:
         M.hintlabel.configure(text='new pairing confirmed')
 
     def view_all_pairings(self, parent, M):
+        """Display pairings"""
         VP = tk.Toplevel(parent)
         VP.title('Pairings')
         VP.resizable(False, False)
@@ -4741,16 +5025,19 @@ class Results_MainWindow:
         m_frame.pack(anchor=tk.NW, padx=5, pady=5)
 
     def _hideorseek(self):
+        """Enable choice of k0 monitor depending on the method chosen"""
         if self.methodofchoice.get() == 0:
             self.k0monitorCB.configure(state='disabled')
         else:
             self.k0monitorCB.configure(state='readonly')
 
     def _unpack_selected_emissions(self, spectrum, allowed):
+        """Return only suspected emissions of the correct irradiation/decay type in allowed (I, IVB)"""
         pre_check = [sus[ass] for ass, sus in zip(spectrum.assigned_peaks, spectrum.suspected_peaks) if ass != -1]
         return [item.emission for item in pre_check if item.line['type'] in allowed]
 
     def _update_standard_accordingly(self, M):
+        """Update stadard suspected emissions in peaklist"""
         self.sampleCB.get()
         for pair in M.INAAnalysis.pairings:
             if pair[0] == self.sampleCB.get() and pair[1] in self.standardCB['values']:
@@ -4759,6 +5046,7 @@ class Results_MainWindow:
         self._update_k0emissions(M)
 
     def _update_k0emissions(self, M, allowed=('I', 'IVB')):
+        """Update possible k0 monitor choice from suspected emissions in standards' peaklists"""
         k0spectra = [self._unpack_selected_emissions(spectrum, allowed) for spectrum in M.INAAnalysis.spectra if spectrum.sample == self.standardCB.get()]
         values = sorted(set([item for sublist in k0spectra for item in sublist]))
         self.k0monitorCB['values'] = values
@@ -4770,6 +5058,7 @@ class Results_MainWindow:
             self.k0monitorCB.set('')
 
     def compute_results(self, parent, M, vtype, overview_setup):
+        """Elaborate results"""
         base_hint = M.hintlabel.cget('text')
 
         if self.methodofchoice.get() == 0:
@@ -4944,6 +5233,7 @@ class Results_MainWindow:
         PTR.pack(anchor=tk.NW, padx=5, pady=5)
 
     def calculate_beta(self, M, standard_spectrum, st_idx, sample_spectrum, sm_idx, st_emission_line, st_emiss_id, sm_emission_line, sm_emiss_id):
+        """Return beta (value, uncertainty) for a couple of standards"""
         _dd, _udd = M.INAAnalysis.irradiation.irradiation_scheme.standard_sample_distance(standard_spectrum.sample, sample_spectrum.sample)
 
         np1, unp1 = standard_spectrum.peak_list[st_emiss_id][4], standard_spectrum.peak_list[st_emiss_id][5]
@@ -4978,6 +5268,7 @@ class Results_MainWindow:
         return beta, ubeta
 
     def confirm_emission(self, sstand, previous_standard_item, emiss, selection_criterium='statistics'):
+        """Return spectrum and emission satisfying the choice criterium"""
         #criteriums('statistics', 'earlier', 'later', 'shorter', 'longer')
         if previous_standard_item is None:
             return (sstand, emiss)
@@ -4998,6 +5289,7 @@ class Results_MainWindow:
             return previous_standard_item
 
     def manage_emissions(self, sus, ass, nnn, user_defined=False):
+        """Update selection of suspected emissions in peaklist"""
         if len(sus) == 0:
             return []
         elif len(sus) == 1:
@@ -5015,6 +5307,7 @@ class Results_MainWindow:
                 return [(nnn, ss) for ss in sus]
 
     def go_back(self, parent, M):
+        """Return to Main window"""
         if self.secondary_window is not None:
             try:
                 self.secondary_window.destroy()
@@ -5025,6 +5318,7 @@ class Results_MainWindow:
 
 
 class SetdistanceWindow:
+    """Class for Set counting distance window"""
     def __init__(self, parent, M, index, labeldis=None):
         self.index = index
 
@@ -5055,6 +5349,7 @@ class SetdistanceWindow:
         self.hintlabel.pack(anchor=tk.NW, fill=tk.X, expand=True)
 
     def confirmall(self, M, labeldis):
+        """Confirm updated distance"""
         pos = self.nominal_position.get()
         dd = self.deltad.get()
         udd = self.udeltad.get()
@@ -5066,6 +5361,7 @@ class SetdistanceWindow:
 
 
 class PeaklistWindow:
+    """Class for Peaklist window"""
     def __init__(self, parent, M, index, labelid=None, labelrole=None):
         self.SpectrumPlotSubwindow = None
         self.SpectrumProfileSubwindow = None
@@ -5138,6 +5434,7 @@ class PeaklistWindow:
         B_show_options.configure(command=lambda : self.clear_emission_assignment(parent, M))
 
     def clear_emission_assignment(self, parent, M):
+        """Clear assigned emissions"""
         if messagebox.askyesno(title='Clear assigned emissions', message=f'\nAre you sure to clear\nall currently assigned emissions?\n', parent=parent):
 
             try:
@@ -5151,6 +5448,7 @@ class PeaklistWindow:
                 self.tree.set(nn, column='emitter', value='')
 
     def stringass(self, ass, sus):
+        """Return the assigned emission as a string ('' if no selection is performed or 'X' if the peak has to be excluded from elaboration)"""
         if sus > -1:
             return ass[sus].emission
         elif sus == -2:
@@ -5158,11 +5456,13 @@ class PeaklistWindow:
         return ''
     
     def lenass(self, ass):
+        """Return number of suspected emissions for peak"""
         if len(ass) > 0:
             return f'({len(ass)})'
         return ''
 
     def show_peak_info(self, parent, M, item_index):
+        """Display info concerning selected peak"""
         self.item_index = item_index
         if self.PeakInformationSubwindow is not None:
             self.PeakInformationSubwindow.focus()
@@ -5338,17 +5638,20 @@ class PeaklistWindow:
             self.PeakInformationSubwindow.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(self.PeakInformationSubwindow))
 
     def exclude_current_peak(self, M):
+        """Exclude selected peak from elaboration"""
         if len(M.INAAnalysis.spectra[self.index].suspected_peaks[self.item_index]) > 0:
             M.INAAnalysis.spectra[self.index].assigned_peaks[self.item_index] = -2
             self.tree.set(self.item_index, column='emitter', value='X')
 
     def confirm_emission_assignment(self, M):
+        """Confirm selected emission for current peak"""
         if self.emissionslist_CB.get() != '':
             idx = self.emissionslist_CB['values'].index(self.emissionslist_CB.get())
             M.INAAnalysis.spectra[self.index].assigned_peaks[self.item_index] = idx
             self.tree.set(self.item_index, column='emitter', value=M.INAAnalysis.spectra[self.index].suspected_peaks[self.item_index][idx].emission)
 
     def confirm_all_emission_assignment(self, M):
+        """Confirm also additional emissions from the same emitter"""
         if self.emissionslist_CB.get() != '':
             idx = self.emissionslist_CB['values'].index(self.emissionslist_CB.get())
             M.INAAnalysis.spectra[self.index].assigned_peaks[self.item_index] = idx
@@ -5364,12 +5667,14 @@ class PeaklistWindow:
             self._select_CB_assigned(M)
 
     def cancel_emission_assignment(self, M):
+        """Clear assignment for the current peak"""
         self.emissionslist_CB.set('')
         M.INAAnalysis.spectra[self.index].assigned_peaks[self.item_index] = -1
         self.tree.set(self.item_index, column='emitter', value='')
         self._update_peakinfo(M)
 
     def _update_peakinfo(self, M):
+        """Update peak info"""
         line = M.INAAnalysis.spectra[self.index].peak_list[self.item_index]
         self.channel_F.configure(text=f'{line[0]:.2f}')
         self.energy_F.configure(text=f'{line[2]:.2f} keV')
@@ -5397,11 +5702,13 @@ class PeaklistWindow:
         self._update_assignedinfo(infos, M)
 
     def _select_CB_assigned(self, M):
+        """Select emission from drop down menu"""
         index = self.emissionslist_CB['values'].index(self.emissionslist_CB.get())
         infos = M.INAAnalysis.spectra[self.index].suspected_peaks[self.item_index][index]
         self._update_assignedinfo(infos, M, index)
 
     def recvalues(self, value, par):
+        """Return recommended values as string"""
         none = (lambda x : np.nan, '.2f')
         parameters = {'Q0':(lambda x : '20', '.2f'), 'Er':(lambda x : '50', '.2f'), 'k0':(lambda x : '5', '.2f'), 'gy':(lambda x : str(x), '.3f')}
         opt = parameters.get(par, none)
@@ -5416,6 +5723,7 @@ class PeaklistWindow:
             return f'{value}{rec}'
 
     def get_data_from_emission(self, M, idx, emission):
+        """Return relevant data (net area, uncertainy of net area, emission energy, gamma yield, uncertainty of gamma yield) from the selected peak in the peaklist"""
         np, unp = M.INAAnalysis.spectra[self.index].peak_list[idx][4], M.INAAnalysis.spectra[self.index].peak_list[idx][5]
         EE = emission.energy
         if isinstance(emission.line["GY"], str) and emission.line["GY"] != '':
@@ -5434,6 +5742,7 @@ class PeaklistWindow:
         return np, unp, EE, gy, ugy
 
     def _update_assignedinfo(self, infos, M, index=-1):
+        """Update info of assigned emission"""
         current_emission = None
         self.allemissions = []
         self.allemissionsavailable = []
@@ -5526,6 +5835,7 @@ class PeaklistWindow:
         self.otherpeaksovervew_LB._colored_update(self.allemissionsavailable, self._true_color, self._false_color)
 
     def switch_selection(self):
+        """Return list of additional emissions for same emitter"""
         emission_index = self.otherpeaksovervew_LB.curselection()
         try:
             emission_index = emission_index[0]
@@ -5539,10 +5849,12 @@ class PeaklistWindow:
             self.otherpeaksovervew_LB.listbox.selection_clear(emission_index)
 
     def calculate_mf_from_same_emitter(self, np_a, np_m, k0_a, COI_a, k0_m, COI_m, d, dd, d0_a, d0_m, height):
+        """Return mass fraction ratio of additional emissions over the current one"""
         y = (np_a * k0_m * COI_m) / (np_m * k0_a * COI_a) * np.exp(0) * ((d - d0_m) / (d + dd - d0_m))**2 / ((d - d0_a) / (d + dd - d0_a))**2 * (1 + height / (d + dd - d0_a)) / (1 + height / (d + dd - d0_m))
         return y, 0.2
     
     def manage_cascade_line(self, datalist):
+        """Return emission's cascade as string"""
         cvlist, voidlist = [], []
         for line in datalist:
             if line[0] != '':
@@ -5553,6 +5865,7 @@ class PeaklistWindow:
         return cvlist + voidlist
 
     def posplot(self, parent, screen_width, screen_height):
+        """Place spectrum plot subwindow on the screen"""
         values = ('peak', 'parent', 'info', 'none')
 
         if self.options['attach_to'] == values[0]:
@@ -5570,6 +5883,7 @@ class PeaklistWindow:
                 self.SpectrumPlotSubwindow.geometry(f'+{self.SpectrumProfileSubwindow.winfo_rootx()}+{self.SpectrumProfileSubwindow.winfo_rooty()+self.SpectrumProfileSubwindow.winfo_height()}')
 
     def show_spectrum_plot(self, parent, M, centroid=None):
+        """Display spectrum plot subwindow"""
         if self.SpectrumPlotSubwindow is not None:
             self.SpectrumPlotSubwindow.focus()
         else:
@@ -5659,6 +5973,7 @@ class PeaklistWindow:
                 self.other_plot_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.display_other_spectrum_plot(M))
 
     def on_motion(self, event, M):
+        """Return information (channel, energy, counts) related coordinates on the plot as string"""
         #mouse motion on spectrum profile
         text=''
         if event.xdata is not None and event.ydata is not None:
@@ -5674,6 +5989,7 @@ class PeaklistWindow:
         self.coordinates.configure(text=text)
 
     def display_legend(self, M):
+        """Display legend on the plot"""
         if self.showlegendV.get() == 0:
             self.SpectrumPlotSubwindow.ax.get_legend().set_visible(False)
         else:
@@ -5688,6 +6004,7 @@ class PeaklistWindow:
         self.SpectrumPlotSubwindow.canvas.draw()
 
     def display_background(self, M):
+        """Plot background profile (corrected for live time) on the spectrum profile"""
         if self.display_backgroundV.get() == 0:
             self.lines[1][0].set_ydata(np.array([np.nan] * M.INAAnalysis.spectra[self.index].number_of_channels()))
             self.SpectrumPlotSubwindow.canvas.draw()
@@ -5700,6 +6017,7 @@ class PeaklistWindow:
                 self.SpectrumPlotSubwindow.canvas.draw()
 
     def display_other_spectrum_plot(self, M):
+        """Plot additional spectrum profile as comparison"""
         if self.other_plot_CB.get() == '':
             self.lines[2][0].set_ydata(np.array([np.nan] * M.INAAnalysis.spectra[self.index].number_of_channels()))
             self.SpectrumPlotSubwindow.canvas.draw()
@@ -5710,6 +6028,7 @@ class PeaklistWindow:
                 self.SpectrumPlotSubwindow.canvas.draw()
 
     def re_center_plot(self, peak_centroid, M):
+        """Center plot around the selected peak"""
         if self.SpectrumPlotSubwindow is not None:
 
             centroid = peak_centroid
@@ -5728,6 +6047,7 @@ class PeaklistWindow:
             self.SpectrumPlotSubwindow.canvas.draw()
 
     def on_scroll(self, event, M):
+        """Move the plot limits with mouse scroll"""
         #Scroll spectrum profile
         if event.xdata is not None and event.ydata is not None:
             current_limits = self.SpectrumPlotSubwindow.ax.get_xlim()
@@ -5749,6 +6069,7 @@ class PeaklistWindow:
             self.on_motion(event, M)
 
     def show_spectrum_info(self, parent, M):
+        """Display spectrum info window"""
         if self.SpectrumProfileSubwindow is not None:
             self.SpectrumProfileSubwindow.focus()
         else:
@@ -5769,9 +6090,10 @@ class PeaklistWindow:
             tk.Label(info_frame, text='dead time:', anchor=tk.W).grid(row=4, column=0, sticky=tk.W)
             tk.Label(info_frame, text='sample:', anchor=tk.W).grid(row=5, column=0, sticky=tk.W)
             tk.Label(info_frame, text='role:', anchor=tk.W).grid(row=7, column=0, sticky=tk.W)
-            tk.Label(info_frame, text='path:', anchor=tk.W).grid(row=8, column=0, sticky=tk.W)
-            tk.Label(info_frame, text='peaklist lines:', anchor=tk.W).grid(row=10, column=0, sticky=tk.W)
-            tk.Label(info_frame, text='prominent peaks:', anchor=tk.W).grid(row=11, column=0, sticky=tk.W)
+            tk.Label(info_frame, text='preset:', anchor=tk.W).grid(row=8, column=0, sticky=tk.W)
+            tk.Label(info_frame, text='path:', anchor=tk.W).grid(row=9, column=0, sticky=tk.W)
+            tk.Label(info_frame, text='peaklist lines:', anchor=tk.W).grid(row=11, column=0, sticky=tk.W)
+            tk.Label(info_frame, text='prominent peaks:', anchor=tk.W).grid(row=12, column=0, sticky=tk.W)
 
             self.filenameL = tk.Label(info_frame, text='', anchor=tk.W)
             self.filenameL.grid(row=0, column=1, sticky=tk.W, padx=8)
@@ -5790,14 +6112,20 @@ class PeaklistWindow:
             if M.INAAnalysis.spectra[self.index].sample is not None:
                 self.sampleCB.set(M.INAAnalysis.spectra[self.index].sample)
 
+            self.presetCB = ttk.Combobox(info_frame, width=30, state='readonly')
+            self.presetCB.grid(row=8, column=1, sticky=tk.W, padx=8)
+            values = tuple([''] + [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')])
+            self.presetCB['values'] = values
+            self.presetCB.set('')
+
             logo_assign_all_peaks_based_on_sample = tk.PhotoImage(data=gui_things.PL_gearpeak)
             B_autoselect_peaks = gui_things.Button(info_frame, image=logo_assign_all_peaks_based_on_sample, hint='automatic peaks identification', hint_destination=localhintlabel, command=lambda : self._autoselect_peaks(M))
-            B_autoselect_peaks.grid(row=5, column=2, sticky=tk.W, padx=8)
+            B_autoselect_peaks.grid(row=8, column=2, sticky=tk.W, padx=8)
             B_autoselect_peaks.image = logo_assign_all_peaks_based_on_sample
             
             logo_check_intense_peaks = tk.PhotoImage(data=gui_things.PL_infopeak)
             B_check_intense_peaks = gui_things.Button(info_frame, image=logo_check_intense_peaks, hint='alert for intense peaks', hint_destination=localhintlabel, command=lambda : self._peak_intensity_alert(M))
-            B_check_intense_peaks.grid(row=11, column=2, sticky=tk.W, padx=8)
+            B_check_intense_peaks.grid(row=12, column=2, sticky=tk.W, padx=8)
             B_check_intense_peaks.image = logo_check_intense_peaks
 
             self.roleCB = tk.Label(info_frame, text='')
@@ -5809,13 +6137,13 @@ class PeaklistWindow:
                 self.roleCB.configure(text='-')
 
             self.pathL = tk.Label(info_frame, text='', width=80, anchor=tk.W)
-            self.pathL.grid(row=8, column=1, sticky=tk.W, padx=8)
+            self.pathL.grid(row=9, column=1, sticky=tk.W, padx=8)
             self.spfileL = tk.Label(info_frame, text='', anchor=tk.W)
-            self.spfileL.grid(row=9, column=1, sticky=tk.W, padx=8)
+            self.spfileL.grid(row=10, column=1, sticky=tk.W, padx=8)
             self.pllfileL = tk.Label(info_frame, text='', anchor=tk.W)
-            self.pllfileL.grid(row=10, column=1, sticky=tk.W, padx=8)
+            self.pllfileL.grid(row=11, column=1, sticky=tk.W, padx=8)
             self.psfileL = tk.Label(info_frame, text='', anchor=tk.W)
-            self.psfileL.grid(row=11, column=1, sticky=tk.W, padx=8)
+            self.psfileL.grid(row=12, column=1, sticky=tk.W, padx=8)
 
             info_frame.pack(anchor=tk.NW)
 
@@ -5827,13 +6155,35 @@ class PeaklistWindow:
 
             self.sampleCB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>': self.select_sampleid(M))
 
+    def _merge_elementsets(self, preset=(), elements=None):
+        """Merge set of elements with preset to find the intersection"""
+        if elements is None:
+            elements = ()
+
+        if elements == () and preset == ():
+            return None
+        elif elements == ():
+            return tuple(preset)
+        elif preset == ():
+            return tuple(elements)
+        result = set(preset).intersection(set(elements))
+        return tuple(sorted(result))
+
+    def _recall_preset(self, filename):
+        """Return element list from selected preset"""
+        if filename == '':
+            return ()
+        element_list = naaobject._call_database(filename, 'presets', 'pst')
+        return element_list
+
     def _autoselect_peaks(self, M):
+        """Manage auto-assignment of peaks"""
         try:
             self.PeakInformationSubwindow.destroy()
             self.PeakInformationSubwindow = None
         except Exception:
             pass
-        #not that much options really
+        #not that much options really, presets incoming
 
         sample = M.INAAnalysis.get_sample(M.INAAnalysis.spectra[self.index].sample)
 
@@ -5841,7 +6191,10 @@ class PeaklistWindow:
             elements = sample.composition.certificate.keys()
         else:
             elements = None
-            
+        
+        preset = self._recall_preset(self.presetCB.get())
+        elements = self._merge_elementsets(preset, elements)
+
         for nn, suspt in enumerate(M.INAAnalysis.spectra[self.index].suspected_peaks):
             assignment = self.manage_assignment(M, nn, suspt, elements)
             M.INAAnalysis.spectra[self.index].assigned_peaks[nn] = assignment
@@ -5853,6 +6206,7 @@ class PeaklistWindow:
                 self.tree.set(nn, column='emitter', value='')
 
     def _peak_intensity_alert(self, M):
+        """Display alert for intense peaks"""
         PIA = tk.Toplevel(self.SpectrumProfileSubwindow)
         text = M.INAAnalysis.spectra[self.index].peak_intensity_check(M.settings.get('count rate threshold'))
         PIA.title(f'Intense peak alert (threshold {M.settings.get("count rate threshold")} s⁻¹)')
@@ -5860,6 +6214,7 @@ class PeaklistWindow:
         gui_things.ScrollableText(PIA, width=45, height=10, data=text).pack(anchor=tk.NW)
 
     def manage_assignment(self, M, nn, suspt, elements=None):
+        """Manage peak assignment"""
         assignment = -1
         if elements is not None:
             check_composition = True
@@ -5878,6 +6233,7 @@ class PeaklistWindow:
         return self._check_overwrite(M, nn, assignment)
     
     def _check_overwrite(self, M, nn, assignment):
+        """Check before overrinding peak assignment"""
         #end check for overwrite
         previous_value = M.INAAnalysis.spectra[self.index].assigned_peaks[nn]
 
@@ -5894,6 +6250,7 @@ class PeaklistWindow:
         return assignment
 
     def select_sampleid(self, M):
+        """Get id of sample linked to selected spactrum"""
         M.INAAnalysis.spectra[self.index].sample = self.sampleCB.get()
         
         sample_id = M.INAAnalysis.spectra[self.index].get_sample()
@@ -5903,6 +6260,7 @@ class PeaklistWindow:
         self.roleCB.configure(text=role_string)
 
     def _update_spectrum_info(self, M):
+        """Update spectrum info"""
         self.filenameL.configure(text=M.INAAnalysis.spectra[self.index].filename())
         if M.INAAnalysis.irradiation is not None:
             td = M.INAAnalysis.spectra[self.index].datetime - M.INAAnalysis.irradiation.datetime
@@ -5921,6 +6279,7 @@ class PeaklistWindow:
         self.psfileL.configure(text=M.INAAnalysis.spectra[self.index].peak_summary(8)[1])
 
     def on_closing(self, window):
+        """Callback function on closing window"""
         if window == self.SpectrumProfileSubwindow:
             self.SpectrumProfileSubwindow.destroy()
             self.SpectrumProfileSubwindow = None
@@ -5932,6 +6291,7 @@ class PeaklistWindow:
             self.PeakInformationSubwindow = None
 
     def select_item_from_tree(self, parent, M):
+        """Select line from peaklist"""
         curItem = self.tree.focus()
         item_index = self.tree.index(curItem)
         values = self.tree.item(curItem, 'values')
@@ -5941,6 +6301,7 @@ class PeaklistWindow:
 
 
 class IrradiationSampleManagementWindow:
+    """Class for Irradiation sample management window"""
     def __init__(self, parent, M, irrlabel):
         parent.title(f'Irradiation samples')
         parent.resizable(False,False)
@@ -6170,6 +6531,7 @@ class IrradiationSampleManagementWindow:
         self.irradiationcode_CB.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.recall_irradiation_data(M, cvs))
 
     def recall_irradiation_data(self, M, cvs):
+        """Recall irradiation data from database or default"""
         try:
             provisional_irradiation = naaobject._call_database(self.irradiationcode_CB.get(), 'irradiations', 'irr')
         except Exception:
@@ -6219,6 +6581,7 @@ class IrradiationSampleManagementWindow:
             self.hintlabel.configure(text='data impossible to recall')
 
     def selection_item_scheme(self):
+        """Select item from the irradiaton scheme"""
         try:
             idx = self.irradiation_scheme_item_LB.curselection()[0]
         except IndexError:
@@ -6246,6 +6609,7 @@ class IrradiationSampleManagementWindow:
             self.roletype.configure(text=item.type)
 
     def move_item(self, cvs, direction=1):
+        """Move item within the irradiation scheme"""
         try:
             idx = self.irradiation_scheme_item_LB.curselection()[0]
         except IndexError:
@@ -6265,6 +6629,7 @@ class IrradiationSampleManagementWindow:
             self.irradiation_scheme_item_LB._update([item.code for item in self.irradiation_scheme.scheme])
 
     def display_distance_overview(self, parent):
+        """Display distance relative to selected reference"""
         try:
             idx = self.irradiation_scheme_item_LB.curselection()[0]
         except IndexError:
@@ -6309,6 +6674,7 @@ class IrradiationSampleManagementWindow:
                 self.hintlabel.configure(text='a standard or sample needs to be selected')
 
     def delete_item(self, parent, cvs):
+        """Delete item from the irradiation scheme"""
         try:
             idx = self.irradiation_scheme_item_LB.curselection()[0]
         except IndexError:
@@ -6332,12 +6698,14 @@ class IrradiationSampleManagementWindow:
                 self.roletype.configure(text='')
 
     def selection_of_code(self, M):
+        """Selection of sample code to include in irradiation scheme"""
         if self.sample_variable.get() == 1:
             sample = M.INAAnalysis.get_sample(self.measurementsamplecode_CB.get())
             self.rolelabel.configure(text=sample.sampletype)
             self.roletype.configure(text=sample.composition.compositiontype)
 
     def add_item(self, M, cvs):
+        """Add selected item to irradiation scheme"""
         scheme_item = M.INAAnalysis.get_sample(self.measurementsamplecode_CB.get())
         message = self.irradiation_scheme.add_position(naaobject.BaseItemScheme(scheme_item))
         self.hintlabel.configure(text=message)
@@ -6345,6 +6713,7 @@ class IrradiationSampleManagementWindow:
         self.irradiation_scheme_item_LB._update([item.code for item in self.irradiation_scheme.scheme])
 
     def add_modify_item(self, cvs):
+        """Add/modify selected item"""
         advance = True
         try:
             height = float(self.itemheight.get())
@@ -6391,6 +6760,7 @@ class IrradiationSampleManagementWindow:
             self.hintlabel.configure(text='an error occurred, non physical item height')
 
     def _facility_as_text_display(self, data, spaces=[15,8,12,12,10,10,10,10]):
+        """Return facility info as string"""
 
         def text_cut(text,limit):
             if len(text) > limit - 1:
@@ -6401,6 +6771,7 @@ class IrradiationSampleManagementWindow:
         return [f'{text_cut(idx,spaces[0])}{format(pos,".1f").ljust(spaces[1])}{mtime.strftime("%d/%m/%Y").rjust(spaces[2]," ")}{dtime.strftime("%d/%m/%Y").rjust(spaces[3]," ")}{format(ff,".2f").rjust(spaces[4]," ")}{format(aa,".5f").rjust(spaces[5]," ")}{format(thermal,".2e").rjust(spaces[6]," ")}{format(fast,".2e").rjust(spaces[7]," ")}' for idx, pos, mtime, dtime, ff, aa, thermal, fast in zip(data['channel_name'], data['pos'], data['m_datetime'], data['datetime'], data['f_value'], data['a_value'], data['thermal_flux'], data['fast_flux'])]
 
     def seekforfluxdata(self, parent):
+        """Update info concerning irradiation facility"""
         fullchannelname = self.irradiationchannelname_CB.get()
         if fullchannelname.replace(' ','') != '':
 
@@ -6432,6 +6803,7 @@ class IrradiationSampleManagementWindow:
             self.selected_facility_LB.listbox.bind('<Double-Button-1>', lambda e='<Double-Button-1>' : self.update_irradiation_facility(partial_data))
 
     def update_irradiation_facility(self, partial_data):
+        """Update info concerning irradiation facility"""
         facilityindex = self.selected_facility_LB.curselection()
         try:
             facilityindex = facilityindex[0]
@@ -6463,10 +6835,12 @@ class IrradiationSampleManagementWindow:
             self.ufast_F.insert(0, f'{series_data["unc_fast_flux"]:.3e}')
 
     def update_irradiation_codes(self):
+        """Update irradiation code"""
         irradiations_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'irradiations')) if filename.lower().endswith('.irr')]
         return irradiations_list
 
     def save_irradiation_data(self, M, irrlabel):
+        """Save irradiation data"""
         #check and save irradiation data
         advance = True
         filename = self.irradiationcode_CB.get()
@@ -6523,6 +6897,7 @@ class IrradiationSampleManagementWindow:
             self.hintlabel.configure(text='invalid data')
 
     def check_value(self, container, outcome, check_positive=False, sign='<=', default=0.0):
+        """Check value"""
         try:
             value = float(container.get())
         except ValueError:
@@ -6539,6 +6914,7 @@ class IrradiationSampleManagementWindow:
 
 
 class BlankManagementWindow:
+    """Class for Blank management window"""
     def __init__(self, parent, M, label):
         parent.title(f'Blank')
         parent.resizable(False,False)
@@ -6606,6 +6982,7 @@ class BlankManagementWindow:
             pass
 
     def disclose_material(self, Msets=20):
+        """Display material information"""
         filename = self.material_selector.get()
         try:
             provisional_sample = naaobject.Material(f'{filename}.csv', non_certified_uncertainty=Msets)
@@ -6615,9 +6992,11 @@ class BlankManagementWindow:
             pass
 
     def display_information(self, text):
+        """Display material information"""
         self.display_materialinfo._update(text)
 
     def save_blank_material(self, M, label):
+        """Save blank information"""
         pmoist, pumoist = 0, 0
 
         advance = True
@@ -6643,12 +7022,14 @@ class BlankManagementWindow:
             self.hintlabel.configure(text='invalid data')
 
     def ignore_blank_material(self, M, label):
+        """Clear current blank"""
         M.INAAnalysis.blank_info = None
         label.configure(text='')
         self.hintlabel.configure(text='blank ignored')
     
 
 class EnvironmentalManagementWindow:
+    """Class for Buoyancy window"""
     def __init__(self, parent, M):
         parent.title(f'Buoyancy')
         parent.resizable(False,False)
@@ -6708,6 +7089,7 @@ class EnvironmentalManagementWindow:
         mainframe.pack(anchor=tk.NW, padx=5, pady=5)
 
     def confirm_values(self, M):
+        """Confirm inserted values"""
         invalid = 0
         try:
             p_value = float(self.apressure_E.get())
@@ -6789,6 +7171,7 @@ class EnvironmentalManagementWindow:
 
 
 class MeasurementSampleManagementWindow:
+    """Class for Sample management window"""
     def __init__(self, parent, M, mslabel, idlabel, rolelabel):
         parent.title(f'Measurement samples')
         parent.resizable(False,False)
@@ -6846,6 +7229,7 @@ class MeasurementSampleManagementWindow:
         self.sample_selector_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.update_selector(M, mslabel))
 
     def update_selector(self, M, mslabel):
+        """Change visualization thorugh all, sample, standard"""
         if self.sample_selector_CB.get() == self.sample_selector_CB['values'][1]:
             self.sampleidlist._update(data=[item.name for item in M.INAAnalysis.samples_id if item.sampletype == self.sample_selector_CB.get()])
         elif self.sample_selector_CB.get() == self.sample_selector_CB['values'][2]:
@@ -6855,6 +7239,7 @@ class MeasurementSampleManagementWindow:
         mslabel.configure(text=f'{len(M.INAAnalysis.samples_id)} samples')
 
     def show_thermal_selfshielding(self, parent, M):
+        """Calculate thermal self-shielding for selected sample"""
         code = self.sampleidlist.get_selection()
         sample = M.INAAnalysis.get_sample(code)
         if sample is not None:
@@ -6876,6 +7261,7 @@ class MeasurementSampleManagementWindow:
             self.hintlabel.configure(text='no measurement sample is selected')
 
     def show_epithermal_selfshielding(self, parent, M):
+        """Calculate epithermal self-shielding for selected sample"""
         code = self.sampleidlist.get_selection()
         sample = M.INAAnalysis.get_sample(code)
         if sample is not None:
@@ -6896,6 +7282,7 @@ class MeasurementSampleManagementWindow:
             self.hintlabel.configure(text='no measurement sample is selected')
 
     def delete_sample(self, parent, M, mslabel, idlabel, rolelabel):
+        """Delete selected sample"""
         code = self.sampleidlist.get_selection()
         sample = M.INAAnalysis.get_sample(code)
         if sample is not None:
@@ -6918,6 +7305,7 @@ class MeasurementSampleManagementWindow:
             self.hintlabel.configure(text='no measurement sample is selected')
 
     def add_sample(self, parent, M, mslabel):
+        """Add new sample"""
         #open the window for measurement sample record
         try:
             self.secondary_window.destroy()
@@ -6926,6 +7314,7 @@ class MeasurementSampleManagementWindow:
         self.modify_sample_form(parent, M, mslabel)
 
     def modify_sample(self, parent, M, mslabel):
+        """Modify selected sample"""
         code = self.sampleidlist.get_selection()
         sample = M.INAAnalysis.get_sample(code)
         if sample is not None:
@@ -6939,6 +7328,7 @@ class MeasurementSampleManagementWindow:
             self.hintlabel.configure(text='no measurement sample is selected')
 
     def modify_sample_form(self, parent, M, mslabel, sample=None):
+        """Modify sample subwindow"""
         self.secondary_window = tk.Toplevel(parent)
         try:
             title = f'Measurement sample ({sample.name})'
@@ -7088,6 +7478,7 @@ class MeasurementSampleManagementWindow:
         self.ctype_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.select_ctype())
 
     def mass_calculator(self):
+        """Return mass (value, uncertainty) from type and composition"""
         m, um = 0.0, 0.0
         if self.composition.compositiontype == 'pipetted solutions':
             m = np.sum([self.composition.mass * value[0] for _, value in self.composition.certificate.items()])
@@ -7114,6 +7505,7 @@ class MeasurementSampleManagementWindow:
         return m, um
 
     def density_calculator(self, M, hintlabel):
+        """Calcualte density (value, uncertainty)"""
         #different density calculations depending on the compositiontype(solutions, single material)
         m, um = self.mass_calculator()
 
@@ -7156,6 +7548,7 @@ class MeasurementSampleManagementWindow:
             hintlabel.configure(text='invalid density calcuated')
 
     def select_role(self):
+        """Select role for sample"""
         self.useasCRM_variable.set(0)
         if self.role_CB.get() == 'sample':
             self.CHB.configure(state=tk.NORMAL)
@@ -7176,6 +7569,7 @@ class MeasurementSampleManagementWindow:
         self.description._update(data=self.composition.get_information_text())
 
     def select_ctype(self):
+        """Select subtype of sample"""
         try:
             self.composition_subwindow.destroy()
         except:
@@ -7184,6 +7578,7 @@ class MeasurementSampleManagementWindow:
         self.description._update(data=self.composition.get_information_text())
 
     def modify_composition(self, M):
+        """Modify composition"""
         forms = {'single material':self.single_material_subwindow, 'pipetted solutions':self.pipetted_solutions_subwindow}
         if self.composition_subwindow is not None:
             try:
@@ -7197,6 +7592,7 @@ class MeasurementSampleManagementWindow:
             M.hintlabel.configure(text='not implemented')
 
     def single_material_subwindow(self, parent, M):
+        """Modify composition (single material type)"""
         self.composition_subwindow = tk.Toplevel(parent)
         title = 'Manage composition - single material'
         self.composition_subwindow.title(title)
@@ -7276,6 +7672,7 @@ class MeasurementSampleManagementWindow:
             pass
     
     def pipetted_solutions_subwindow(self, parent, M):
+        """Modify composition (pipetted solution type)"""
         self.composition_subwindow = tk.Toplevel(parent)
         title = 'Manage composition - pipetted solutions'
         self.composition_subwindow.title(title)
@@ -7362,6 +7759,7 @@ class MeasurementSampleManagementWindow:
         self.material_selector.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.disclose_material(M.settings.get('non certified standard uncertainties')))
 
     def save_pipetted_material_data(self, hintlabel, Msets):
+        """Save material data (pipetted solution type)"""
         text = 'no pipetting data introduced'
         self.disclose_material(Msets)
 
@@ -7379,6 +7777,7 @@ class MeasurementSampleManagementWindow:
         hintlabel.configure(text=text)
 
     def add_action(self, Msets):
+        """Add pipetting action"""
         self.n_action.configure(text=f'{len(self.composition.data)+1}')
         self.mass_F.delete(0, tk.END)
         self.mass_F.insert(0, 0.000)
@@ -7393,6 +7792,7 @@ class MeasurementSampleManagementWindow:
         self.disclose_material(Msets)
 
     def delete_pipetting(self, hintlabel):
+        """Delete pipetting action"""
         n_action = self.n_action.cget('text')
         if n_action == '':
             proceed = False
@@ -7421,6 +7821,7 @@ class MeasurementSampleManagementWindow:
             hintlabel.configure(text='no datum is selected')
 
     def select_line(self, hintlabel):
+        """Select specific pipetting action"""
         try:
             ixx = self.pipsLB.curselection()[0]
         except IndexError:
@@ -7438,6 +7839,7 @@ class MeasurementSampleManagementWindow:
             self.display_information(text)
 
     def save_modify_pipetting(self, hintlabel, Msets=20):
+        """Save pipetting actions"""
         n_action = self.n_action.cget('text')
         if n_action == '':
             proceed = False
@@ -7481,9 +7883,11 @@ class MeasurementSampleManagementWindow:
             hintlabel.configure(text=problem)
 
     def _to_text(self):
+        """Return pipetting actions as list of strings"""
         return [f'{format(nn, "d").ljust(4)}{format(mass, ".2e").rjust(10)} g, {sample.name[:20]}' for nn, (mass, umass, moisture, umoisture, sample) in enumerate(self.composition.data, start=1)]
 
     def disclose_material(self, Msets=20):
+        """Display information material"""
         filename = self.material_selector.get()
         try:
             provisional_sample = naaobject.Material(f'{filename}.csv', non_certified_uncertainty=Msets)
@@ -7493,9 +7897,11 @@ class MeasurementSampleManagementWindow:
             pass
 
     def display_information(self, text):
+        """Update material information"""
         self.display_materialinfo._update(text)
 
     def save_single_material_data(self, hintlabel, Msets=20):
+        """Save material information"""
         advance = True
         psample = naaobject.Material(f'{self.material_selector.get()}.csv', non_certified_uncertainty=Msets)
         try:
@@ -7530,6 +7936,7 @@ class MeasurementSampleManagementWindow:
         hintlabel.configure(text=text)
 
     def save_sample_data(self, M, mslabel, hintlabel):
+        """Save sample information"""
         advance = True
         msg = []
         ms_name = self.code_F.get()
@@ -7633,24 +8040,29 @@ class MeasurementSampleManagementWindow:
 
 
 class Settings:
+    """Class for Settings"""
     def __init__(self, filename='settings.cfg', folder='data', home='.'):
         self.filepath = os.path.join(os.path.join(home, folder), filename)
         self.information = self._get_settings_from_file()
 
     def get(self, key):
+        """Return value of a specific setting"""
         #get setting value
         return self.information[key]
 
     def set(self, key, value):
+        """Set the value of a specific setting"""
         #set setting value
         #value: any class with a get method
         dtype = type(self.information[key])
         self.information[key] = dtype(value.get())
 
     def dump(self):
+        """Save settings"""
         self.write_settings_on_file(self.filepath, self.information)
 
     def _get_settings_from_file(self):
+        """Recall settings from file"""
         try:
             with open(self.filepath, 'r') as k0_settings_file:
                 information = {line.replace('\n','').split(' <#> ')[0]: self._get_correct_datatype(line.replace('\n','').split(' <#> ')[-1], traceline[1], traceline[2]) for line,traceline in zip(k0_settings_file.readlines(), self.default_settings())}
@@ -7660,11 +8072,13 @@ class Settings:
         return information
 
     def _get_correct_datatype(self, datum, datatype=str, default=None):
+        """Return the value with correct datatype for each item"""
         datatypes = {'str':str, 'int':int, 'float':float, 'bool': lambda x : bool(int(x))}
         func = datatypes[datatype]
         return func(datum)
 
     def default_settings(self):
+        """Return default settings"""
         #master settings list
         #descriptor, datatype, default_value
         master_settings = (
@@ -7716,17 +8130,20 @@ class Settings:
         return master_settings
 
     def get_bool_right(self, value):
+        """Function for correct bool type management"""
         if type(value) == bool:
             return int(value)
         return value
 
     def write_settings_on_file(self, filepath, information):
+        """Save settings information on file"""
         with open(filepath, 'w') as missing_or_corrupted_setting_file:
             for line in self.default_settings():
                 missing_or_corrupted_setting_file.write(f'{line[0]} <#> {self.get_bool_right(information[line[0]])}\n')
 
 
 def main_script():
+    """Main script of the software"""
     home = os.path.abspath('.')
     settings = Settings(home=home)
     M = tk.Tk()
