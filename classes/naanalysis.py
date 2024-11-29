@@ -1467,6 +1467,10 @@ def _save_naalysis_file(file, namefile):
 	with open(namefile,'wb') as filesave:
 		pickle.dump(file, filesave)
 
+def _save_preset_datum(file, filename):
+	with open(os.path.join(os.path.join('data', 'presets'), f'{filename}.pst'),'wb') as filesave:
+		pickle.dump(file, filesave)
+
 def _save_facility_database(file):
 	with open(os.path.join(os.path.join('data', 'facilities'), 'channels.chs'),'wb') as filesave:
 		pickle.dump(file, filesave)

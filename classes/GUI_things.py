@@ -1117,6 +1117,86 @@ class ScrollableListbox(tkinter.Frame):
             except IndexError:
                 return None
         return values
+    
+
+class SelectionPeriodicTable(tkinter.Frame):
+    """A periodic table to display the elementals to select from"""
+    def __init__(self, master, results, default_palette='YlOrRd'):
+        tkinter.Frame.__init__(self, master)
+        self.periodic_data = periodic_data
+        self.results = self.rectify(results)
+        self.elements = []
+        self.color_gradient = []
+        HeaderLine = tkinter.Frame(self)
+        PTTable = tkinter.Frame(self)
+        resolution = 2
+        
+        tkinter.Label(HeaderLine, text='', width=6, anchor=tkinter.W).pack(side=tkinter.LEFT, anchor=tkinter.NW)
+        tkinter.Label(HeaderLine, text='', width=8, anchor=tkinter.W).pack(side=tkinter.LEFT, anchor=tkinter.NW)
+        tkinter.Frame(HeaderLine).pack(side=tkinter.LEFT, anchor=tkinter.NW, padx=15)
+        
+        label_min = tkinter.Label(HeaderLine, text='Exclude', width=7)
+        label_min.pack(side=tkinter.LEFT, padx=5)
+        for i in range(resolution):
+            gradient_label = tkinter.Label(HeaderLine, text='', width=1)
+            gradient_label.pack(side=tkinter.LEFT, anchor=tkinter.NW)
+            self.color_gradient.append(gradient_label)
+        label_max = tkinter.Label(HeaderLine, text='Include', width=7)
+        label_max.pack(side=tkinter.LEFT, padx=5)
+
+        tkinter.Label(HeaderLine, text='palette').pack(side=tkinter.LEFT, padx=3)
+        self.CB_palette_selector = ttk.Combobox(HeaderLine, width=15, state='readonly')
+        self.CB_palette_selector.pack(side=tkinter.LEFT, anchor=tkinter.NW, padx=5)
+        self.CB_palette_selector['values'] = ('Purples', 'Blues', 'Greens', 'Oranges', 'Reds', 'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'BuPu', 'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn', 'viridis', 'plasma', 'cividis', 'tab20b')
+        if default_palette in self.CB_palette_selector['values']:
+            self.CB_palette_selector.set(default_palette)
+        else:
+            self.CB_palette_selector.set('YlOrRd')
+
+        tkinter.Frame(PTTable).grid(row=7, column=0, pady=4)
+        element_indicator = tkinter.Label(PTTable, text='', anchor=tkinter.W)
+        element_indicator.grid(row=10, column=0, pady=3, columnspan=10, sticky=tkinter.W)
+        self.default_color = element_indicator.cget('bg')
+        for element in self.periodic_data:
+            line = f'{element[4]}'
+            CB = Button(PTTable, text=element[1], state=tkinter.NORMAL, width=3, bg=self.default_color, anchor=tkinter.W, relief='solid', hint=line, hint_destination=element_indicator)
+            CB.grid(row=element[2], column=element[3], ipadx=2, ipady=2, sticky=tkinter.W)
+            CB.configure(command= lambda el=element[1]: self._set_commando(el))
+            self.elements.append(CB)
+        
+        HeaderLine.pack(anchor=tkinter.NW, pady=5)    
+        PTTable.pack(anchor=tkinter.NW, padx=5, pady=5)
+
+        self.by_selection()
+        
+        self.CB_palette_selector.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self.by_selection())
+
+    def rectify(self, result):
+        if result is None:
+            return set()
+        return set(result)
+
+    def _set_commando(self, element):
+        if element in self.results:
+            self.results.remove(element)
+        else:
+            self.results.add(element)
+        self.by_selection()
+
+    def by_selection(self):
+        item_selection = [1 if item[1] in self.results else 0 for item in self.periodic_data]
+        cmap = cm.get_cmap(self.CB_palette_selector.get())
+        nmin, nmax = 0.0, 1.0
+        colors = cmap(np.array([(i-nmin)/(nmax-nmin) for i in item_selection]))
+        gradient = cmap(np.linspace(0, 1, len(self.color_gradient)))
+        
+        for card, color, nn in zip(self.elements, colors, item_selection):
+            card.configure(background=mcolors.to_hex(color[:3]))
+        for grad, gcard in zip(gradient, self.color_gradient):
+            gcard.configure(background=mcolors.to_hex(grad[:3]))
+
+    def get(self):
+        return tuple(self.results)
 
 
 class EpithermalSelfShieldingPeriodicTable(tkinter.Frame):
@@ -1990,8 +2070,9 @@ class PeriodicTable(tkinter.Frame):
         title = parent.title().replace(' | results on: ', '_').replace(':', '')
         sublocal_data = [local_datum for local_datum in local_data if local_datum.accepted_for_report]
         if len(sublocal_data) > 0:
-            filetypes = (('HyperLab peak list','*.xlsx'),)
-            namefile = asksaveasfilename(parent=parent, initialfile=f'{title}.xlsx', filetypes=filetypes)
+            filetypes = (('Excel uncertainty budget','*.xlsx'),)
+            #namefile = asksaveasfilename(parent=parent, initialfile=f'{title}.xlsx', filetypes=filetypes, defaultextension='.xlsx')
+            namefile = decorated_asksaveasfilename(parent=parent, initialfile=f'{title}.xlsx', filetypes=filetypes, defaultextension='.xlsx')
             if namefile != '':
                 SingleBudgetOutput(sublocal_data, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid, total_contribution_summary=self.total_contribution_summary)
                 messagebox.showinfo(title='Success', message='Uncertainty budget is saved', parent=parent)
@@ -2149,9 +2230,10 @@ class PeriodicTable(tkinter.Frame):
         parent._update(local_data)
 
     def _export_single_budget(self, local_budget, parent):
-        filetypes = (('HyperLab peak list','*.xlsx'),)
+        filetypes = (('Excel uncertainty budget','*.xlsx'),)
         ftitle = parent.title().replace(' | ', '_')
-        namefile = asksaveasfilename(parent=parent, initialfile=f'{ftitle}.xlsx', filetypes=filetypes)
+        #namefile = asksaveasfilename(parent=parent, initialfile=f'{ftitle}.xlsx', filetypes=filetypes, defaultextension='.xlsx')
+        namefile = decorated_asksaveasfilename(parent=parent, initialfile=f'{ftitle}.xlsx', filetypes=filetypes, defaultextension='.xlsx')
         if namefile != '':
             SingleBudgetOutput(local_budget, namefile, lock_cells=self.lock_cells, set_autolinks=self.set_autolinks, visible_models=self.visible_models, hide_grids=self.hide_grid, total_contribution_summary=self.total_contribution_summary)
             messagebox.showinfo(title='Success', message='Uncertainty budget is saved', parent=parent)
@@ -2159,7 +2241,8 @@ class PeriodicTable(tkinter.Frame):
     def save_results(self, hintlabel):
         if len(self.results) > 0:
             filetypes = (('Budget Object','*.boj'),)
-            namefile = asksaveasfilename(parent=self, initialfile=f'Analysis.boj', filetypes=filetypes)
+            #namefile = asksaveasfilename(parent=self, initialfile=f'Analysis.boj', filetypes=filetypes, defaultextension='.boj')
+            namefile = decorated_asksaveasfilename(parent=self, initialfile=f'Analysis.boj', filetypes=filetypes, defaultextension='.boj')
             if namefile != '':
                 ResRep = ResultReport(self.results)
                 analysisoutput(ResRep, namefile)
@@ -2578,6 +2661,35 @@ def get_averages_compositions(budget_list, material):
 		averages[idx] = (ave, np.sqrt(sumofweights))
 
 	return averages
+
+
+def post_check(filename, _filetypes):
+    def splitext(path, _filetypes):
+        try:
+            idx = path[::-1].index('.')
+        except (TypeError, ValueError):
+            return path, ''
+        else:
+            p_root, p_ext = path[:-idx-1], path[-idx-1:].lower()
+            if p_ext in _filetypes:
+                return p_root, p_ext
+            _add_ext = ''
+            if len(_filetypes) == 1:
+                _add_ext = _filetypes[0]
+            return p_root + p_ext, _add_ext
+        
+    _path, _base = os.path.split(filename)
+    _root, _ext = splitext(_base, _filetypes)
+
+    if _base == '' or _root == '':
+        return ''
+
+    return os.path.join(_path, f'{_root}{_ext}')
+
+def decorated_asksaveasfilename(parent=None, initialfile=None, filetypes=(), confirmoverwrite=True, defaultextension=None, initialdir=None, title=None):
+    _filetypes = tuple([types[1].replace('*', '') for types in filetypes])
+    namefile = post_check(asksaveasfilename(parent=parent, initialfile=initialfile, filetypes=filetypes, defaultextension=defaultextension, title=title, initialdir=initialdir, confirmoverwrite=confirmoverwrite), _filetypes=_filetypes)
+    return namefile
 
 
 class ScrollableText(tkinter.Frame):
