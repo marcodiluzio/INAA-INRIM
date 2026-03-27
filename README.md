@@ -6,7 +6,7 @@ This software is developed as an aid for analysts to perform INAA measurement (w
 It was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.
 The produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation.
 
-Source code is written in Python 3.6
+Source code is written in Python 3.13
 
-INAA-INRIM © 2024 by Marco Di Luzio is licensed under Creative Commons Attribution 4.0 International.
+INAA-INRIM © 2026 by Marco Di Luzio is licensed under Creative Commons Attribution 4.0 International.
 To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/
