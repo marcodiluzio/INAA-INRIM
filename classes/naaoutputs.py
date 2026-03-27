@@ -267,6 +267,12 @@ class SingleBudget:
 
         fml = '=IFERROR((D16-D17)/SQRT(E16^2+E17^2),"-")'
         worksheet.write(17, 3, fml, self.font_zscore)
+        fml = f'=IFERROR(IF(ABS(D18)-(I16/E16)<=0,0,1),"-")'
+        worksheet.write(17, 4, fml)
+
+        worksheet.conditional_format('E18:E18', {'type':'icon_set', 'icon_style': '3_symbols_circled', 'icons_only': True, 'reverse_icons': True, 'icons': [{'criteria': '>=', 'type': 'number', 'value': 1.0},
+               {'criteria': '>=',  'type': 'number', 'value': 0.5},
+               {'criteria': '<', 'type': 'number', 'value': 0.5}]})
 
         #MINI BUDGETS
 
@@ -1772,6 +1778,40 @@ class SingleBudget:
             worksheet.insert_image('BS41', 'data/eqs/eq_mass_ratio.png')
             worksheet.insert_image('CG34', 'data/eqs/eq_blank_correction.png')
             worksheet.insert_image('CU44', 'data/eqs/eq_U_fission_correction.png')
+            traceinfo_anchor = 44
+
+        else:
+            traceinfo_anchor = 41
+
+        worksheet.write(traceinfo_anchor, 70, 'traceability information')
+        worksheet.write_rich_string(traceinfo_anchor+1, 70, self.font_ital, 'm', '(std) / g')
+        #worksheet.write(traceinfo_anchor+1, 71, 'name')
+        worksheet.write_rich_string(traceinfo_anchor+1, 72, self.font_ital, 'w', f'({budget.info_data['std_target']}) / g g', self.font_sups, '-1')
+        worksheet.write_rich_string(traceinfo_anchor+1, 74, self.font_ital, 'u', self.font_subs, 'r', self.font_ital, 'w', f'({budget.info_data['std_target']}) / 1')
+        #worksheet.write(traceinfo_anchor+1, 73, 'description')
+        for _nx, line in enumerate(budget.info_data['traceability']):
+            worksheet.write(traceinfo_anchor+2+_nx, 70, line[0])
+            worksheet.write(traceinfo_anchor+2+_nx, 71, line[4].name)
+
+            trace_values = line[4].certificate.get(budget.info_data['std_target'], (' ', ''))
+            worksheet.write(traceinfo_anchor+2+_nx, 72, trace_values[0])
+
+            if budget.info_data['std_target'] not in line[4].non_certified and trace_values[0] != ' ':
+                worksheet.write(traceinfo_anchor+2+_nx, 73, 'certified')
+            try:
+                rel_inc = trace_values[1]/trace_values[0]
+                worksheet.write(traceinfo_anchor+2+_nx, 74, rel_inc, self.font_pct)
+            except TypeError:
+                rel_inc = ''
+                worksheet.write(traceinfo_anchor+2+_nx, 74, rel_inc)
+
+            worksheet.write(traceinfo_anchor+2+_nx, 75, line[4].description)
+            worksheet.write(traceinfo_anchor+2+_nx, 90, ' ')
+            #print(line[4].non_certified)
+            #print(line[4].certificate)
+        fml = f'=BS{traceinfo_anchor+1}'
+        worksheet.write('O12', fml)
+        worksheet.write_url('R12', f"internal:BS{traceinfo_anchor+1}")
 
         if self.set_autolinks:
             #NET AREA RATIO

@@ -18,6 +18,115 @@ import pickle
 import xlsxwriter
 from xlsxwriter.utility import xl_rowcol_to_cell
 
+
+class SpectrumNAA:
+    """Defines a spectrum class containing all the relevant information
+    and that is suitable for peak evaluation."""
+    def __init__(self, fullpath, look_for_peaklist_option=True, prioritize_elaborated_peaklist=True, limit=40):
+        self.LOOKFOR_PEAKLIST = look_for_peaklist_option
+        self.RETURN_ELABORATED_PEAKLIST = prioritize_elaborated_peaklist
+        self.spectrumpath = fullpath
+        self.elaboration_date = None
+
+        self.datetime, self.real_time, self.live_time, self.original_peak_list, self.counts = self._get_info(limit)
+
+        self.elaborated_peak_list = None
+        self.problems = None
+		#experimental
+        self.elaboration = None
+
+    def _get_info(self, limit):
+        basename, extension = os.path.splitext(self.spectrumpath)
+
+        if extension.lower() == '.asc':
+            startcounting, real, live, spectrum_counts = openASCfile(self.spectrumpath)
+        elif extension.lower() == '.chn':
+            startcounting, real, live, spectrum_counts = openchnfile(self.spectrumpath)
+        else:
+            raise FileNotFoundError
+
+        peaklist = []
+
+        if self.LOOKFOR_PEAKLIST:
+            exts = ('.csv', '.rpt')
+            if os.path.exists(f'{basename}{exts[0]}'):
+                try:
+                    peaklist = openhyperlabfile(f'{basename}{exts[0]}',limit)
+                except (FileNotFoundError,):
+                    peaklist = []
+                    self.problems = 'Import error'
+            elif os.path.exists(f'{basename}{exts[1]}'):
+                try:
+                    _, _, _, peaklist = openrptfile(f'{basename}{exts[1]}',limit)
+                except Exception:
+                    peaklist = []
+                    self.problems = 'Import error'
+            else:
+                self.problems = 'File not found'
+
+        return startcounting, real, live, peaklist, spectrum_counts
+
+    def _get_peaklist(self):
+        if self.elaborated_peak_list is None or self.elaborated_peak_list == []:
+            return self.original_peak_list
+        if self.RETURN_ELABORATED_PEAKLIST:
+            return self.elaborated_peak_list
+        return self.original_peak_list
+
+    def deadtime(self, out='str'):
+        try:
+            deadtime=(self.real_time-self.live_time)/self.real_time
+            deadtime=deadtime*100
+            if out=='str':
+                deadtime=str(deadtime.__round__(2))+' %'
+        except:
+            if out=='str':
+                deadtime='Invalid'
+            else:
+                deadtime=None
+        return deadtime
+
+    def readable_datetime(self):
+        return self.datetime.strftime("%d/%m/%Y %H:%M:%S")
+	
+    def readable_EPLdatetime(self):
+        try:
+            return self.elaboration_date.strftime("%d/%m/%Y %H:%M:%S")
+        except Exception:
+            return ''
+    
+    def number_of_channels(self):
+        try:
+            return len(self.counts)
+        except:
+            return 0
+        
+    def defined_spectrum_integral(self,start,width):
+        if start>0 and start<len(self.counts) and start+width<len(self.counts):
+            integr=0
+            for i in range(width):
+                integr += self.counts[start+i]
+            return integr
+        else:
+            return None
+        
+    def define(self):
+        return 'elaborated spectrum'
+
+    def filename(self):
+        filename=str(self.spectrumpath)
+        filename=str.split(filename,'/')[-1]
+        if filename.lower().endswith(('.asc', '.chn')):
+            return filename[:-4]
+        return filename
+
+    def _save(self):
+        path, filename = os.path.split(self.spectrumpath)
+        fname, extension = os.path.splitext(filename)
+        with open(os.path.join(path, f'{fname}.spa'),'wb') as filesave:
+            pickle.dump(self, filesave)
+
+
 class Spectrum:
     """define a spectrum with all attached information."""
     def __init__(self,identity='Test',start_acquisition=datetime.datetime.today(),real_time=1000,live_time=999,peak_list=None,counts=None,path=None):
@@ -87,10 +196,11 @@ class SpectrumAnalysis(Spectrum):
 
 		self.suspected_peaks = None
 		self.assigned_peaks = None
+		self.probability_peaks = None #NEWLINE
 		if prompt_peaksearch:
 			self.discriminate_peaks(database, energy_tolerance)
 		if prompt_peak_identification:
-			self.autoassignment_peaks()
+			self.autoassignment_peaks(efficiency=efficiency, database=database)
 
 	def _set_default_counting_position(self, efficiency):
 		if efficiency is not None:
@@ -141,10 +251,241 @@ class SpectrumAnalysis(Spectrum):
 			self.suspected_peaks = [() for line in self.peak_list]
 			self.assigned_peaks = [-1 for line in self.peak_list]
 
-	def autoassignment_peaks(self):
+		self.probability_peaks = [[-1]*len(line) for line in self.suspected_peaks] #NEWLINE
+
+	def autoassignment_peaks_deprecated(self): #DEPRECATED
 		for nn, suspt in enumerate(self.suspected_peaks):
 			if len(suspt) == 1 and self.assigned_peaks[nn] != -2:
 				self.assigned_peaks[nn] = 0
+			
+	def autoassignment_peaks(self, efficiency=None, database=None, end_of_irradiation_date=None):
+		self._auto_filter_emission_database(efficiency, database, end_of_irradiation_date)
+
+		for nn, suspt in enumerate(self.suspected_peaks):
+			if len(suspt) > 0 and self.assigned_peaks[nn] != -2:
+				if all(np.array(self.probability_peaks[nn]) < 0):
+					pass
+				else:
+					_idxmx = np.argmax(self.probability_peaks[nn])
+					self.assigned_peaks[nn] = _idxmx
+
+	def _auto_filter_emission_database_deprecated(self, efficiency, database, end_of_irradiation_date=None, k=3, threshold=1E-6, other_spectra=()):
+		if efficiency is not None and database is not None and len(self.peak_list) > 0:
+			_filt = sorted([[idx, emis.energy, self.peak_list[idx][4], self.peak_list[idx][5]/self.peak_list[idx][4], emis, sus.index(emis)] for idx, sus in enumerate(self.suspected_peaks) for emis in sus if emis.line['type'] in ('I', 'IVB')], key= lambda x : x[3])
+
+			blueprint = [Emission('k0', database.loc[line]) for line in database.index]
+
+			train_d = []
+			if end_of_irradiation_date is None:
+				td = 0
+			else:
+				td = self.datetime - end_of_irradiation_date
+				td = td.total_seconds()
+			for _row in blueprint:
+				kE, ukE = efficiency.reference_curve.eval(_row.energy)
+				kk0, urkk0 = _row.line['k0'], _row.line['uk0']
+				kL, ukL = _row.get_lambda(_row.line['C3_t1/2'], _row.line['C3_ut1/2'], _row.line['C3_unit'])
+				VP = (kk0 * kE * (1-np.exp(-kL * self.real_time)) * np.exp(-kL * td)) / (kL)
+				uVP = np.sqrt(np.power(urkk0/kk0,2) + np.power(ukE/kE,2)) #add more uncertainties
+				train_d.append([VP, uVP, _row])
+
+			for idx, line in enumerate(_filt):
+				_emission = line[4]
+				subtrain = [[0, 0.0, 0.0] + [dline[0], dline[1]] for dline in train_d if dline[-1].target == _emission.target]
+				_indexes = [dline[-1] for dline in train_d if dline[-1].target == _emission.target]
+				_subfilt = [fline for fline in _filt if fline[4].target == _emission.target]
+
+				special_index = None
+				for _dfline in _subfilt:
+					try:
+						iidx = _indexes.index(_dfline[4])
+					except (IndexError, ValueError):
+						pass
+					else:
+						if _dfline[4] == _emission:
+							special_index = iidx
+							subtrain[iidx][0] = -1
+						else:
+							subtrain[iidx][0] = 1
+						subtrain[iidx][1] = _dfline[2]
+						subtrain[iidx][2] = _dfline[3]
+				subtrain = pd.DataFrame(subtrain, columns=['is', 'np', 'urnp', 'w', 'uw'])
+				is_filter = subtrain['is'] == 0
+				
+				if special_index is not None:
+					Nfac = subtrain.iloc[special_index, 3] / subtrain.iloc[special_index, 1]
+				else:
+					Nfac = 1
+				
+				if len(subtrain) == 0:
+					#weights = 0
+					self.probability_peaks[line[0]][line[5]] = -1
+				else:
+					weights = np.sum(subtrain[~is_filter]['w']) / np.sum(subtrain['w'])
+				
+					subtrain['z'] = subtrain['w'] / subtrain['np'] / Nfac
+					xxxp = (1 + k * subtrain['uw'] - subtrain['z']) / subtrain['urnp']
+					xxxm = (1 - k * subtrain['uw'] - subtrain['z']) / subtrain['urnp']
+					subtrain['pdf'] = (statistics.norm.cdf(xxxp) - statistics.norm.cdf(xxxm)) * weights
+					others = 1 - subtrain.iloc[special_index, 6]/np.sum(subtrain['pdf'])
+					_probs = np.average([subtrain.iloc[special_index, 6], others], weights=[1/len(subtrain['pdf']), (len(subtrain['pdf'])-1)/len(subtrain['pdf'])])
+					if _probs > threshold:
+						self.probability_peaks[line[0]][line[5]] = _probs
+					else:
+						self.probability_peaks[line[0]][line[5]] = -1
+		
+		elif self.identity == 'characterization spectrum':
+			for idx, sus in enumerate(self.suspected_peaks):
+				if len(sus) == 1:
+					self.probability_peaks[idx][0] = 0.9
+				else:
+					for iiidx, _ in enumerate(sus):
+						self.probability_peaks[idx][iiidx] = -1
+
+	def _auto_filter_emission_database(self, efficiency, database, end_of_irradiation_date=None, k=3, threshold=1E-6, other_spectra=()):
+		if efficiency is not None and database is not None and len(self.peak_list) > 0:
+			_filt = sorted([[idx, emis.energy, self.peak_list[idx][4], self.peak_list[idx][5]/self.peak_list[idx][4], emis, sus.index(emis)] for idx, sus in enumerate(self.suspected_peaks) for emis in sus if emis.line['type'] in ('I', 'IVB')], key= lambda x : x[3])
+
+			blueprint = [Emission('k0', database.loc[line]) for line in database.index]
+
+			train_d = []
+			if end_of_irradiation_date is None:
+				td = 0
+			else:
+				td = self.datetime - end_of_irradiation_date
+				td = td.total_seconds()
+			for _row in blueprint:
+				kE, ukE = efficiency.reference_curve.eval(_row.energy)
+				kk0, urkk0 = _row.line['k0'], _row.line['uk0']
+				kL, ukL = _row.get_lambda(_row.line['C3_t1/2'], _row.line['C3_ut1/2'], _row.line['C3_unit'])
+				VP = (kk0 * kE * (1-np.exp(-kL * self.real_time)) * np.exp(-kL * td))# / (kL)
+				uVP = np.sqrt(np.power(urkk0/kk0,2) + np.power(ukE/kE,2)) #add more uncertainties
+				train_d.append([VP, uVP, _row])
+
+			o_train = []
+			o_filt = []
+			for ospct in other_spectra:
+				o_spect = []
+				#print('OSPCT!!!', ospct.datetime, ospct.suspected_peaks)
+				if end_of_irradiation_date is None:
+					o_td = 0
+				else:
+					o_td = ospct.datetime - end_of_irradiation_date
+					o_td = o_td.total_seconds()
+				for _row in blueprint:
+					kE, ukE = efficiency.reference_curve.eval(_row.energy)
+					kk0, urkk0 = _row.line['k0'], _row.line['uk0']
+					kL, ukL = _row.get_lambda(_row.line['C3_t1/2'], _row.line['C3_ut1/2'], _row.line['C3_unit'])
+					VP = (kk0 * kE * (1-np.exp(-kL * ospct.real_time)) * np.exp(-kL * td))# / (kL)
+					uVP = np.sqrt(np.power(urkk0/kk0,2) + np.power(ukE/kE,2))
+					o_spect.append([VP, uVP, _row])
+				o_train.append(o_spect)
+				#o_train += o_spect
+
+				o_fspect = [[idx, emis.energy, ospct.peak_list[idx][4], ospct.peak_list[idx][5]/ospct.peak_list[idx][4], emis, sus.index(emis)] for idx, sus in enumerate(ospct.suspected_peaks) for emis in sus if emis.line['type'] in ('I', 'IVB')]
+				o_filt.append(o_fspect)
+				#o_filt += o_fspect
+
+			#print('OTHER SPECTRA TRAIN NESTED LIST', o_train)
+
+			for idx, line in enumerate(_filt):
+				_emission = line[4]
+				#print('\n\n',_emission.emission)
+				subtrain = [[0, 0.0, 0.0] + [dline[0], dline[1]] for dline in train_d if dline[-1].target == _emission.target and dline[-1].line["emitter"] == _emission.line["emitter"] and dline[-1].line["A"] == _emission.line["A"]]
+				_indexes = [dline[-1] for dline in train_d if dline[-1].target == _emission.target and dline[-1].line["emitter"] == _emission.line["emitter"] and dline[-1].line["A"] == _emission.line["A"]]
+				_subfilt = [fline for fline in _filt if fline[4].target == _emission.target and fline[4].line["emitter"] == _emission.line["emitter"] and fline[4].line["A"] == _emission.line["A"]]
+
+				#print('TRAIN', subtrain)
+				#print('FILT', _subfilt)
+
+				#HERE OSPECT!
+				o_subtrain = []
+				o_subfilt = []
+				for os_train, os_filt in zip(o_train, o_filt):
+					o_subtrain.append([[0, 0.0, 0.0] + [dline[0], dline[1]] for dline in os_train if dline[-1].target == _emission.target and dline[-1].line["emitter"] == _emission.line["emitter"] and dline[-1].line["A"] == _emission.line["A"]])
+					o_subfilt.append([fline for fline in os_filt if fline[4].target == _emission.target and fline[4].line["emitter"] == _emission.line["emitter"] and fline[4].line["A"] == _emission.line["A"]])
+
+				#print('O_SUBTRAIN', o_subtrain)
+				#print('O_SUBFILT', o_subfilt)
+
+				special_index = None
+				for _dfline in _subfilt:
+					try:
+						iidx = _indexes.index(_dfline[4])
+					except (IndexError, ValueError):
+						pass
+					else:
+						if _dfline[4] == _emission:
+							special_index = iidx
+							subtrain[iidx][0] = -1
+						else:
+							subtrain[iidx][0] = 1
+						subtrain[iidx][1] = _dfline[2]
+						subtrain[iidx][2] = _dfline[3]
+				subtrain = pd.DataFrame(subtrain, columns=['is', 'np', 'urnp', 'w', 'uw'])
+				is_filter = subtrain['is'] == 0
+
+				other_train = []
+				for os_idx, os_page in enumerate(o_subfilt):
+					for _dfline in os_page:
+						try:
+							iidx = _indexes.index(_dfline[4])
+						except (IndexError, ValueError):
+							pass
+						else:
+							o_subtrain[os_idx][iidx][0] = 1
+							o_subtrain[os_idx][iidx][1] = _dfline[2]
+							o_subtrain[os_idx][iidx][2] = _dfline[3]
+					other_train += o_subtrain[os_idx]
+
+				o_subtrain = pd.DataFrame(other_train, columns=['is', 'np', 'urnp', 'w', 'uw'])
+
+				#print('THIS IS THE SUBTRAIN ->', subtrain)
+				#print('THIS IS THE OTHER SUBTRAIN ->', o_subtrain)
+				
+				if special_index is not None:
+					Nfac = subtrain.iloc[special_index, 3] / subtrain.iloc[special_index, 1]
+				else:
+					Nfac = 1
+				
+				if len(subtrain) == 0:
+					#weights = 0
+					self.probability_peaks[line[0]][line[5]] = -1
+				else:
+					weights = np.sum(subtrain[~is_filter]['w']) / np.sum(subtrain['w'])
+				
+					subtrain['z'] = subtrain['w'] / subtrain['np'] / Nfac
+					xxxp = (1 + k * subtrain['uw'] - subtrain['z']) / subtrain['urnp']
+					xxxm = (1 - k * subtrain['uw'] - subtrain['z']) / subtrain['urnp']
+					#print('XXXs are reported here', xxxp, xxxm)
+					subtrain['pdf'] = (statistics.norm.cdf(xxxp) - statistics.norm.cdf(xxxm))# * weights
+
+					#print('PDFs subtrain!', subtrain['pdf'])
+
+					if len(o_subtrain) > 0:
+						o_subtrain['z'] = o_subtrain['w'] / o_subtrain['np'] / Nfac
+						xxxp = (1 + k * o_subtrain['uw'] - o_subtrain['z']) / o_subtrain['urnp']
+						xxxm = (1 - k * o_subtrain['uw'] - o_subtrain['z']) / o_subtrain['urnp']
+						o_subtrain['pdf'] = (statistics.norm.cdf(xxxp) - statistics.norm.cdf(xxxm))# * weights
+
+						#print('PDFs o_subtrain!', o_subtrain['pdf'])
+					
+					others = 1 - subtrain.iloc[special_index, 6]/np.sum(subtrain['pdf'])
+					#print('OTHERS', others)
+					_probs = np.average([subtrain.iloc[special_index, 6], others], weights=[1/len(subtrain['pdf']), (len(subtrain['pdf'])-1)/len(subtrain['pdf'])])
+					#print('PROBS', _probs)
+					if _probs > threshold:
+						self.probability_peaks[line[0]][line[5]] = _probs
+					else:
+						self.probability_peaks[line[0]][line[5]] = -1
+		
+		elif self.identity == 'characterization spectrum':
+			for idx, sus in enumerate(self.suspected_peaks):
+				if len(sus) == 1:
+					self.probability_peaks[idx][0] = 0.9
+				else:
+					for iiidx, _ in enumerate(sus):
+						self.probability_peaks[idx][iiidx] = -1
 
 	def check_line(self, ass, sus):
 		if ass is not None:
@@ -156,7 +497,7 @@ class SpectrumAnalysis(Spectrum):
 
 	def _emission_tuple(self, energy, energy_tolerance, database):
 		#
-		energy_filter = database['E'].between(energy - energy_tolerance,energy + energy_tolerance, inclusive=True)
+		energy_filter = database['E'].between(energy - energy_tolerance,energy + energy_tolerance, inclusive='both')
 		subdatabase = database[energy_filter]
 		try:
 			if self.identity == 'analysis spectrum':
@@ -389,6 +730,16 @@ class d0SixParameterFix(SixParameterFix):
 
 		corr = np.corrcoef(R1.T, R2.T)
 		return corr[0,1]
+
+
+class MakeshiftDetectorCharacterization:
+	def __init__(self, energy_slope=0.25, fwhm_intercept=None):
+		self.name = None
+		self.energy_params = np.array([energy_slope, 0])
+		if fwhm_intercept is not None:
+			self.fwhm_params = np.array([0, fwhm_intercept])
+		else:
+			self.fwhm_params = np.array([0, 2/energy_slope])
 
 
 class DetectorCharacterization:
@@ -1487,7 +1838,7 @@ def _call_detection_characterizations(name=None):
 
 class RelAnalysis:
 	def __init__(self, settings_dict):
-		#settings read form settings_dict on initialization
+		#settings read from settings_dict on initialization
 
 		#get databases
 		database_info = (('database', ('k0data', 'k0d')), ('cross_chem_data', ('chemical_data', 'mmd')), ('gabs_data', ('chemical_data', 'gbs')), ('coincidence_data', ('coincidences', 'coi')), ('yfiss_data', ('fission', 'fis')))
@@ -2070,7 +2421,7 @@ class SampleComposition(PartialBudget):
 		if self.analtype:
 			return 'relative_direct'
 		elif self.targettype:
-			return 'relative_direct'#provisional!!!!!!!!!!
+			return 'k0_direct'#provisional!!!!!!!!!!
 		elif not self.analtype and not self.targettype:
 			return 'k0_direct'
 		return 'error'
@@ -2079,7 +2430,7 @@ class SampleComposition(PartialBudget):
 		if self.analtype:
 			return self.solve_relative()
 		elif self.targettype:
-			return self.solve_relative()#provisional!!!!!!!!!!
+			return self.solve_k0()#provisional!!!!!!!!!!
 		elif not self.analtype and not self.targettype:
 			return self.solve_k0()
 		return 0.0, 0.0, {}, 15
@@ -2848,7 +3199,16 @@ class UncBudget:
 		self.asCRM = smpl.asCRM
 
 		#infodata
-		self.info_data = {'detector' : M.INAAnalysis.characterization.detector.name, 'irr_code' : M.INAAnalysis.irradiation.code, 'irr_datetime' : M.INAAnalysis.irradiation.datetime, 'irr_channel' : M.INAAnalysis.irradiation.channel_name, 'standard_path' : standard_spectrum.spectrumpath, 'sample_path' : sample_spectrum.spectrumpath}
+		self.info_data = {'detector' : M.INAAnalysis.characterization.detector.name, 'irr_code' : M.INAAnalysis.irradiation.code, 'irr_datetime' : M.INAAnalysis.irradiation.datetime, 'irr_channel' : M.INAAnalysis.irradiation.channel_name, 'standard_path' : standard_spectrum.spectrumpath, 'sample_path' : sample_spectrum.spectrumpath, 'traceability' : M.INAAnalysis.get_sample(self.standard_id).composition.data, 'std_target' : st_emission_line.target}
+
+		#Material attributes important for the future
+		#self.name
+		#self.description
+		#self.sample_type
+		#self.state
+		#self.certificate
+		#self.non_certified
+
 		
 		#flags
 		if 'Use the Westcott formalism' in ():
@@ -3110,7 +3470,7 @@ def manage_spectra_files_and_get_infos(filename,limit,look_for_peaklist_option):
 	Retrieve information from spectrum and peaklist file, deals with different situations
 	"""
 	peak_list, counts, start_acquisition, real_time, live_time, result, note = None, None, None, None, None, False, 'a generic error occurred!'
-	allowed_extensions = ('.csv','.rpt','.asc','.chn')
+	allowed_extensions = ('.csv','.rpt','.asc','.chn','.spa')
 	basename, extension = os.path.splitext(filename)
 	source = []
 	#.csv route
@@ -3172,6 +3532,12 @@ def manage_spectra_files_and_get_infos(filename,limit,look_for_peaklist_option):
 	elif extension.lower() == allowed_extensions[3]:
 		pass
 
+	#.spa route
+	elif extension.lower() == allowed_extensions[4]:
+		spct = _call_results(filename)
+		peak_list, counts, start_acquisition, real_time, live_time = spct._get_peaklist(), spct.counts, spct.datetime, spct.real_time, spct.live_time
+		result = True
+
 	return peak_list, counts, start_acquisition, real_time, live_time, result, note, source
 
 def openhyperlabfile(file,limit=40):
@@ -3195,7 +3561,7 @@ def openASCfile(file):
 			idx = filelines.index(line)
 			break
 	startcounting = datetime.datetime.strptime(date_time, "%Y-%m-%dT%H:%M:%S")
-	spectrum_counts = np.array([float(iks) for iks in filelines[:idx]])
+	spectrum_counts = np.array([int(iks) for iks in filelines[:idx]])
 	return startcounting, real, live, spectrum_counts
 
 def openchnfile(file):
