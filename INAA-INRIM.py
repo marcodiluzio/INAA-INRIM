@@ -17,13 +17,14 @@ from matplotlib.figure import Figure
 
 import classes.GUI_things as gui_things
 import classes.naanalysis as naaobject
+import classes.pk_elaboration as pk_elab
 
 
 class MainWindow:
     """The base window class"""
     #only one subwindow open at a time
     def __init__(self, M, settings, home):
-        __version__ = 3.2
+        __version__ = 3.3
         self.main_window = tk.Frame(M)
         self.main_window.pack(anchor=tk.NW, padx=5, pady=5)
         M.resizable(False, False)
@@ -32,7 +33,7 @@ class MainWindow:
         M._version = f'INAA-INRIM version {__version__}'
 
         M.settings = settings
-        M.unclosablewindows = ('Detector characterization', 'Flux evaluation - Bare triple monitor', 'Flux gradient evaluation')
+        M.unclosablewindows = ('Detector characterization', 'Flux evaluation - Bare triple monitor', 'Flux gradient evaluation', 'Peak elaboration')
         M.InformationWindow = None
         M.trigger_emission_assignment = False
 
@@ -68,11 +69,11 @@ class UsefulUnusefulInformationWindow:
         parent.title('INAA-INRIM information')
         parent.resizable(False, False)
 
-        welcome_info = 'INAA-INRIM version 3.2\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
+        welcome_info = 'INAA-INRIM version 3.3\n\nThis software is developed as an aid for analysts to perform INAA measurement (with application of either relative and k0 method) and a support to compile uncertainty budgets.\nIt was built from the merging of two separate projects (k0-INRIM and Rel-INRIM) concerning the application of k0 and relative methods but sharing various features and modelizations.\nThe produced uncertainty budgets are standalone and exportable in Microsoft Excel format; it could take into account measurement performed on different emissions, samples and irradiation'
 
         contact_info = 'Inquiries can be sent to the following email addresses\n\nm.diluzio@inrim.it\ng.dagostino@inrim.it'
 
-        license_info = 'INAA-INRIM © 2024 by Marco Di Luzio is licensed under Creative Commons Attribution 4.0 International.\n\nTo view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/'
+        license_info = 'INAA-INRIM © 2026 by Marco Di Luzio is licensed under Creative Commons Attribution 4.0 International.\n\nTo view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/'
 
         reference_info = '\n\n'.join(['References to the various publications related to the INAA-INRIM software',
 
@@ -83,7 +84,7 @@ class UsefulUnusefulInformationWindow:
         """REFERENCE TO PREVIOUS VERSIONS\n\n# Di Luzio et al; "The k0-INRIM software version 2.0: presentation and an analysis vademecum"\nJournal of Radioanalytical and Nuclear Chemistry (2023)\nDOI: 10.1007/s10967-022-08622-5\n\nD'Agostino et al; "Erratum: The k0-INRIM software: A tool to compile uncertainty budgets in neutron activation analysis based on k0-standardisation"\nMeasurement Science and Technology (2020)\nDOI: 10.1088/1361-6501/ab57c8"""
         ])
 
-        version_info = '\n\n'.join(['# version 3.2 (Dec 2024)\n-> creation of presets for faster peak search\n-> result uncertainty contributions in output\n-> setting to change default uncertainty', '# version 3.1 (Sep 2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (Jul 2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
+        version_info = '\n\n'.join(['# version 3.3 (May 2026)\n-> traceability standard information in output\n-> validation check (z-score) on CRM budgets\n-> internal spectra elaborator module\n-> bugfix to coi database (Eu-152 1112)\n-> migration to python version 3.13', '# version 3.2 (Feb 2025)\n-> presets and algorithm for faster peak search\n-> uncertainty contributions of averaged result in output\n-> setting to change default uncertainty\n-> bugfix to detector characterization (spectra list)', '# version 3.1 (Sep 2024)\n-> bugfix to model (efficiency ratio)', '# version 3.0 (Jul 2024)\n-> elaboration with relative method (from rel-INRIM)\n-> elaboration with k0 method (from k0-INRIM)\n-> adoption of updated model with macro-parameters\n-> iterative composition evaluation\n-> combination of measurements from various analysis\n-> result given as sample-per-sample averaged budgets\n-> standalone and protected spreadsheet output files'])
 
         self._infodict = {'welcome' : welcome_info, 'references' : reference_info, 'license' : license_info, 'versions' : version_info, 'contacts' : contact_info}
         self.labelwidget = tk.Label(parent, text='')
@@ -133,8 +134,11 @@ class WelcomeWindow:
         B_infos = gui_things.Button(first_line, image=logo_infos, hint='useful and unuseful info', hint_destination=M.hintlabel, command=lambda : self.go_to_unusefulinformation(parent, M))
         B_infos.pack(side=tk.LEFT, anchor=tk.NW)
         B_infos.image = logo_infos
-        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.2, 2024', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
-        button_header = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='settings & data'), relief='solid', bd=2, padx=4, pady=4)
+        tk.Label(first_line, text='welcome to the INAA-INRIM experience!\nversion 3.3, 2026', justify=tk.LEFT, anchor=tk.W).pack(side=tk.LEFT, anchor=tk.W, padx=5)
+
+        buttons = tk.Frame(mframe)
+
+        button_header = tk.LabelFrame(buttons, labelwidget=tk.Label(buttons, text='settings & data'), relief='solid', bd=2, padx=4, pady=4)
         first_line.pack(anchor=tk.NW, fill=tk.X, expand=True)
 
         logo_settings = tk.PhotoImage(data=gui_things.PL_ggear)
@@ -158,7 +162,26 @@ class WelcomeWindow:
         B_loadNAA.grid(row=0, column=4, sticky=tk.W)
         B_loadNAA.image = logo_loadNAA
 
-        button_header.pack(anchor=tk.NW, padx=5, pady=5)
+        button_spectra = tk.LabelFrame(buttons, labelwidget=tk.Label(buttons, text='spectra'), relief='solid', bd=2, padx=4, pady=4)
+        first_line.pack(anchor=tk.NW, fill=tk.X, expand=True)
+
+        logo_trasformNAA = tk.PhotoImage(data=gui_things.PL_frame_peak)
+        B_trasformNAA = gui_things.Button(button_spectra, image=logo_trasformNAA, hint='convert to INAA-INRIM spectra', hint_destination=M.hintlabel)
+        B_trasformNAA.grid(row=0, column=6, sticky=tk.W)
+        B_trasformNAA.image = logo_trasformNAA
+
+        ttk.Separator(button_spectra, orient="vertical").grid(
+            row=0, column=7, sticky=tk.NS, padx=3)
+
+        logo_elaborateNAA = tk.PhotoImage(data=gui_things.PL_gearpeak)
+        B_elaborateNAA = gui_things.Button(button_spectra, image=logo_elaborateNAA, hint='elaborate spectra', hint_destination=M.hintlabel, command=lambda : self.go_to_spectrumelaboration(parent, M))
+        B_elaborateNAA.grid(row=0, column=8, sticky=tk.W)
+        B_elaborateNAA.image = logo_elaborateNAA
+
+        button_header.pack(side=tk.LEFT, anchor=tk.NW, padx=5, pady=5)
+        button_spectra.pack(side=tk.LEFT, anchor=tk.NW, padx=5, pady=5)
+
+        buttons.pack(anchor=tk.NW)
 
         analysis_space = tk.LabelFrame(mframe, labelwidget=tk.Label(mframe, text='analysis'), relief='solid', bd=2, padx=4, pady=4)
 
@@ -195,6 +218,8 @@ class WelcomeWindow:
 
         B_loadNAA.configure(command=lambda : self._call_previously_saved_analysis_(parent, M))
 
+        B_trasformNAA.configure(command=lambda : self._transform_INAAINRIM_spectra_(parent, M))
+
     def _call_previously_saved_analysis_(self, parent, M):
         """Recall saved analysis files"""
         filetypes = (('INAAnalysis save file','*.naas'),)
@@ -207,6 +232,33 @@ class WelcomeWindow:
                 M.hintlabel.configure(text='analysis loaded')
             else:
                 M.hintlabel.configure(text='impossible to load, incorrect file format')
+
+    def _transform_INAAINRIM_spectra_(self, parent, M):
+        """Convert asc and chn format into INAA-INRIM spa files"""
+        filetypes = (('ASCII spectrum file','*.asc'),('GammaVision acquisition file','*.chn'))
+
+        try:
+            output = tuple(askopenfilenames(parent=parent, title=f'Convert spectra',filetypes=filetypes))
+        except TypeError:
+            output = ()
+
+        if len(output) > 0:
+
+            M.progressbar['value'] = 0
+            M.progressbar['maximum'] = len(output)
+            M.progressbar.update()
+            nfc = 0
+
+            for filename in output:
+                if filename != '':
+                    naaobject.SpectrumNAA(filename)._save()
+                    M.hintlabel.configure(text='...converting')
+                    nfc += 1
+                else:
+                    M.hintlabel.configure(text='error occurred, impossible to load')
+                M.progressbar['value'] += 1
+                M.progressbar.update()
+            M.hintlabel.configure(text=f'{nfc} files converted')
 
     def go_to_analysis(self, parent, M):
         """Change the Main window to the Analysis window"""
@@ -259,9 +311,14 @@ class WelcomeWindow:
         """Change the Main window to the Databases window"""
         clear_window(parent)
         DatabaseWindow(parent, M)
+
+    def go_to_spectrumelaboration(self, parent, M):
+        """Change the Main window to the SpectrumElaboration window"""
+        clear_window(parent)
+        ElaborationSpectrumWindow(parent, M)
     
     def go_to_unusefulinformation(self, parent, M):
-        """Open the Software information window form the Main menu"""
+        """Open the Software information window from the Main menu"""
         try:
             M.InformationWindow.destroy()
         except:
@@ -499,6 +556,2586 @@ class SettingsWindow:
         WelcomeWindow(parent, M)
 
 
+class ElaborationSpectrumWindow:
+    """Class for the Elaboration spectra window of the main menu"""
+    def __init__(self, parent, M):
+
+        self.elaboration_list = []
+        self.elaboration_window = None
+        self.subwindows = []
+
+        mframe = tk.Frame(parent)
+        M.title('Elaboration spectrum')
+
+        header = tk.Frame(mframe)
+
+        logo_back_to_welcome = tk.PhotoImage(data=gui_things.PL_aback)
+        B_back = gui_things.Button(header, image=logo_back_to_welcome, hint='back to main menu', hint_destination=M.hintlabel, command=lambda : self.go_back(parent, M))
+        B_back.pack(side=tk.LEFT)
+        B_back.image = logo_back_to_welcome
+
+        header.grid(row=0, column=0, sticky=tk.W)
+
+        ttk.Separator(mframe, orient="horizontal").grid(row=1, column=0, sticky=tk.EW, pady=10)
+
+        utility_frame = tk.Frame(mframe)
+
+        spectrumside_frame = tk.LabelFrame(utility_frame, labelwidget=tk.Label(utility_frame, text='spectra to analyze'), relief='solid', bd=2, padx=4, pady=4)
+
+        self.SPTS_LB = gui_things.ScrollableListbox(spectrumside_frame, width=45, height=15, data=self.elaboration_list)
+        self.SPTS_LB.pack(side=tk.LEFT, expand=True, fill=tk.X, anchor=tk.NW)
+
+        button_column = tk.Frame(spectrumside_frame)
+
+        logo_addspectra = tk.PhotoImage(data=gui_things.PL_pluspeak)
+        B_addspectra = gui_things.Button(button_column, image=logo_addspectra, hint='add spectra files', hint_destination=M.hintlabel)
+        B_addspectra.pack(side=tk.TOP, anchor=tk.NW)
+        B_addspectra.image = logo_addspectra
+
+        logo_removespectrum = tk.PhotoImage(data=gui_things.PL_none)
+        B_removespectrum = gui_things.Button(button_column, image=logo_removespectrum, hint='remove selected spectrum', hint_destination=M.hintlabel)
+        B_removespectrum.pack(side=tk.TOP, anchor=tk.NW)
+        B_removespectrum.image = logo_removespectrum
+
+        logo_peaklist_glimpse = tk.PhotoImage(data=gui_things.PL_peak_list)
+        B_peaklist_glimpse = gui_things.Button(button_column, image=logo_peaklist_glimpse, hint='see peaklist for selected spectrum', hint_destination=M.hintlabel)
+        B_peaklist_glimpse.pack(side=tk.TOP, anchor=tk.NW)
+        B_peaklist_glimpse.image = logo_peaklist_glimpse
+
+        ttk.Separator(button_column, orient="horizontal").pack(side=tk.TOP, fill=tk.X, pady=5)
+
+        logo_batch_elaboration = tk.PhotoImage(data=gui_things.PL_gearpeak)
+        B_batch_elaboration = gui_things.Button(button_column, image=logo_batch_elaboration, hint='perform batch elaboration', hint_destination=M.hintlabel)
+        B_batch_elaboration.pack(side=tk.TOP, anchor=tk.NW)
+        B_batch_elaboration.image = logo_batch_elaboration
+
+        logo_elaboration = tk.PhotoImage(data=gui_things.PL_peakfit)
+        B_elaboration = gui_things.Button(button_column, image=logo_elaboration, hint='perform peak elaboration', hint_destination=M.hintlabel)
+        B_elaboration.pack(side=tk.TOP, anchor=tk.NW)
+        B_elaboration.image = logo_elaboration
+
+        button_column.pack(side=tk.RIGHT, anchor=tk.NW)
+
+        spectrumside_frame.pack(side=tk.LEFT, anchor=tk.NW)
+        
+        utility_frame.grid(row=2, column=0, sticky=tk.W)
+        mframe.pack(anchor=tk.NW)
+
+        B_addspectra.configure(command=lambda : self._add_spectra(parent, M))
+        B_peaklist_glimpse.configure(command=lambda : self._show_peaklists(parent, M))
+        B_removespectrum.configure(command=lambda : self._remove_selected_spectrum(parent, M))
+        B_elaboration.configure(command=lambda : self._go_to_elaboration(parent, M, self.SPTS_LB))
+        B_batch_elaboration.configure(command=lambda : self._go_to_batch_elaboration(parent, M, self.SPTS_LB))
+
+    def _get_title(self, window):
+        try:
+            return window.title()
+        except Exception:
+            return None
+
+    def sweep(self):
+        return [window for window in self.subwindows if window is not None]
+
+    def _go_to_batch_elaboration(self, parent, M, LBlist):
+        if len(self.elaboration_list) > 0:
+
+            _lw = len(self.subwindows)
+            for _nn in range(_lw):
+                self.subwindows[_nn].destroy()
+                self.subwindows[_nn] = None
+            self.subwindows = self.sweep()
+
+            try:
+                self.elaboration_window.deiconify()
+                self.elaboration_window.focus()
+            except Exception:
+                self.elaboration_window = tk.Toplevel(parent)
+                BatchElaborationWindow(self.elaboration_window, M, self.elaboration_list, LBlist)
+        else:
+            M.hintlabel.configure(text='no spectra to elaborate')
+
+    def _go_to_elaboration(self, parent, M, LBlist):
+        if len(self.elaboration_list) > 0:
+
+            _lw = len(self.subwindows)
+            for _nn in range(_lw):
+                self.subwindows[_nn].destroy()
+                self.subwindows[_nn] = None
+            self.subwindows = self.sweep()
+
+            try:
+                self.elaboration_window.deiconify()
+                self.elaboration_window.focus()
+            except Exception:
+                self.elaboration_window = tk.Toplevel(parent)
+                ElaborationWindow(self.elaboration_window, M, self.elaboration_list, LBlist)
+        else:
+            M.hintlabel.configure(text='no spectra to elaborate')
+
+    def _remove_selected_spectrum(self, parent, M):
+        """Display peaklists of inaa files"""
+        spectrum_index = self.SPTS_LB.curselection()
+        try:
+            spectrum_index = spectrum_index[0]
+        except IndexError:
+            spectrum_index = None
+            M.hintlabel.configure(text='no spectrum is selected')
+
+        if spectrum_index is not None:
+            spectrum_info = self.elaboration_list[spectrum_index].filename()
+
+            proceed = True
+
+            if self.elaboration_window is not None:
+                try:
+                    if self.elaboration_window.title() in M.unclosablewindows:
+                        if messagebox.askyesno(title='Close elaboration window', message=f'This action will close the {self.elaboration_window.title()} window.\nMake sure you saved your progresses.\nDo you want to continue?\n', parent=parent):
+                            self.elaboration_window.destroy()
+                        else:
+                            proceed = False
+                            return
+                    else:
+                        self.elaboration_window.destroy()
+                except Exception:
+                    self.elaboration_window.destroy()
+
+            if proceed:
+                if messagebox.askyesno(title='Delete INAA spectrum', message=f'\nAre you sure to delete\nspectrum {spectrum_info}\nfrom list?\n', parent=parent):
+
+                        self.elaboration_list.pop(spectrum_index)
+                        condition = [self._check_item(item) for item in self.elaboration_list]
+                        self.SPTS_LB._update([item.filename() for item in self.elaboration_list])
+                        self.SPTS_LB._triplecolored_update(condition)
+                        M.hintlabel.configure(text=f'spectrum {spectrum_info} deleted')
+                else:
+                    M.hintlabel.configure(text='no spectrum is selected')
+
+    def _show_peaklists(self, parent, M, max_windows_open_at_a_time=10):
+        """Display peaklists of inaa files"""
+        spectrum_index = self.SPTS_LB.curselection()
+        try:
+            spectrum_index = spectrum_index[0]
+        except IndexError:
+            spectrum_index = None
+
+        try:
+            self.elaboration_window.title()
+            resp = False
+        except Exception:
+            resp = True
+
+        if spectrum_index is not None and resp:
+            spectrum_info = self.elaboration_list[spectrum_index]
+
+            self.subwindows = self.sweep()
+            titles = [self._get_title(window) for window in self.subwindows]
+
+            #open_subwindow
+            title = f'Peaklist overview: {spectrum_info.filename()}'
+
+            if title in titles:
+                self.subwindows[titles.index(title)].deiconify()
+                self.subwindows[titles.index(title)].focus()
+            else:
+                PLW = tk.Toplevel(parent)
+                PLW.title(title)
+                PLW.resizable(False, False)
+
+                self.subwindows.append(PLW)
+                if len(self.subwindows) > max_windows_open_at_a_time:
+                    self.subwindows[0].destroy()
+                    self.subwindows[0] = None
+                    self.subwindows = self.sweep()
+
+                hard_choices = tk.Frame(PLW)
+
+                tk.Label(hard_choices, text='prioritize elaborated peaklist', anchor=tk.W).pack(side=tk.LEFT)
+
+                ch_RB = gui_things.OnOffButton(hard_choices, default=spectrum_info.RETURN_ELABORATED_PEAKLIST, hint='', hint_destination=None)
+                ch_RB.pack(side=tk.RIGHT, padx=5, pady=2)
+
+                hard_choices.pack(anchor=tk.N)
+
+                ori_frame = tk.LabelFrame(PLW, labelwidget=tk.Label(PLW, text='original peaklist'), relief='solid', bd=2, padx=4, pady=4)
+
+                #Treeview!
+                defwidth = 80
+                columns = (('channel', defwidth, tk.W), ('E / keV', defwidth, tk.E), ('net area / 1', 90, tk.E), ('uncertainty', defwidth, tk.E), ('FWHM / 1', defwidth, tk.E))
+                ori_tree = ttk.Treeview(ori_frame, columns=[item[0] for item in columns], show='headings', selectmode='browse', height=int(M.settings.get('page height')/2))
+                for item in columns:
+                    ori_tree.heading(item[0], text=item[0])
+                    ori_tree.column(item[0], anchor=item[2], stretch=False, minwidth=item[1], width=item[1])
+                ori_tree.pack(side=tk.LEFT, anchor=tk.NW, fill=tk.X, expand=True)
+                scroll = ttk.Scrollbar(ori_frame, orient="vertical", command=ori_tree.yview)
+                scroll.pack(side=tk.RIGHT, fill=tk.Y)
+                ori_tree.configure(yscrollcommand=scroll.set)
+
+                #populate treeview
+                nnn = 0
+                for line in spectrum_info.original_peak_list:
+                    ori_tree.insert('', 'end', iid=nnn, values=(f'{line[0]:.2f}',f'{line[2]:.2f}',f'{line[4]:.1f}',f'{line[5]/line[4]*100:.1f} %',f'{line[6]:.2f}'))
+                    nnn += 1
+
+                ori_frame.pack(anchor=tk.NW, padx=5, pady=5)
+
+                elab_frame = tk.LabelFrame(PLW, labelwidget=tk.Label(PLW, text='elaborated peaklist'), relief='solid', bd=2, padx=4, pady=4)
+
+                #Treeview!
+                defwidth = 80
+                columns = (('channel', defwidth, tk.W), ('E / keV', defwidth, tk.E), ('net area / 1', 90, tk.E), ('uncertainty', defwidth, tk.E), ('FWHM / 1', defwidth, tk.E))
+                ori_tree = ttk.Treeview(elab_frame, columns=[item[0] for item in columns], show='headings', selectmode='browse', height=int(M.settings.get('page height')/2))
+                for item in columns:
+                    ori_tree.heading(item[0], text=item[0])
+                    ori_tree.column(item[0], anchor=item[2], stretch=False, minwidth=item[1], width=item[1])
+                ori_tree.pack(side=tk.LEFT, anchor=tk.NW, fill=tk.X, expand=True)
+                scroll = ttk.Scrollbar(elab_frame, orient="vertical", command=ori_tree.yview)
+                scroll.pack(side=tk.RIGHT, fill=tk.Y)
+                ori_tree.configure(yscrollcommand=scroll.set)
+
+                #populate treeview
+                nnn = 0
+                if spectrum_info.elaborated_peak_list is not None:
+                    for line in spectrum_info.elaborated_peak_list:
+                        ori_tree.insert('', 'end', iid=nnn, values=(f'{line[0]:.2f}',f'{line[2]:.2f}',f'{line[4]:.1f}',f'{line[5]/line[4]*100:.1f} %',f'{line[6]:.2f}'))
+                        nnn += 1
+
+                elab_frame.pack(anchor=tk.NW, padx=5, pady=5)
+
+                ch_RB.variable.trace_add('write', lambda a,b,c : self._swap_choice(spectrum_index, ch_RB))
+
+    def _swap_choice(self, spectrum_index, ch_RB):
+        self.elaboration_list[spectrum_index].RETURN_ELABORATED_PEAKLIST = ch_RB.get()
+        self.elaboration_list[spectrum_index]._save()
+
+    def _check_item(self, item):
+        if len(item.original_peak_list) > 0 and item.elaborated_peak_list is not None:
+            return True
+        elif len(item.original_peak_list) > 0 or item.elaborated_peak_list is not None:
+            return False
+        return None
+
+    def _add_spectra(self, parent, M):
+        """Recall INAA spectra for peak elaboration"""
+
+        filetypes = (('INAA-INRIM spectrum file','*.spa'),)
+
+        try:
+            output = tuple(askopenfilenames(parent=parent, title=f'Open spectra',filetypes=filetypes))
+        except TypeError:
+            output = ()
+
+        if len(output) > 0:
+            M.progressbar['value'] = 0
+            M.progressbar['maximum'] = len(output)
+            M.progressbar.update()
+
+        for inafile in output:
+            self.elaboration_list.append(naaobject._call_results(inafile))
+            M.progressbar['value'] += 1
+            M.progressbar.update()
+
+        condition = [self._check_item(item) for item in self.elaboration_list]
+        self.SPTS_LB._update([item.filename() for item in self.elaboration_list])
+        self.SPTS_LB._triplecolored_update(condition)
+
+        M.hintlabel.configure(text='done')
+
+    def go_back(self, parent, M):
+        clear_window(parent)
+        WelcomeWindow(parent, M)
+
+
+class BatchElaborationWindow:
+    """Batch elaboration window"""
+    def __init__(self, parent, M, elaboration_list, LBlist):
+
+        self.elabelaboration_list = elaboration_list
+        self.settings_subwindows = None
+
+        #transfer to M.settings to self.peak_options
+        self.region_options = {'K':3.5}
+        self.peak_search = {'LK':3.5, 'height':None, 'threshold':0.05, 'distance':4, 'min_prominence':2, 'wlen':10, 'rel_height':0.5, 'plateau_size':(1,2), 'E_min':50, 'E_max':None, 'min_netarea':100, 'max_allowed_unc':40, 'max_allowed_centroid_unc':2, 'max_allowed_chisq':5, 'left_skew':True, 'right_skew':True, 'slope':True, 'step':True}
+        self.peak_fit = {'bound_peak':2, 'bound_fwhm':2}
+
+        database_info = ('database', ('k0data', 'k0d'))
+        k0_database = naaobject._call_database(M.settings.get(database_info[0]), *database_info[1])
+
+        parent.title('Batch elaboration')
+        parent.resizable(False, False)
+
+        self.header_label = tk.Label(parent, text='options')
+
+        selection_frame = tk.LabelFrame(parent, labelwidget=self.header_label, relief='solid', bd=2, padx=4, pady=4)
+        
+        tk.Label(selection_frame, text='calibration', width=11, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+        tk.Label(selection_frame, text='preset', width=11, anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+        tk.Label(selection_frame, text='regions', width=11, anchor=tk.W).grid(row=3, column=0, sticky=tk.W)
+
+        progress_frame = tk.Frame(parent)
+
+        self.label_loc = tk.Label(progress_frame, text=f'region {0} of {0}', width=20, anchor=tk.W)
+        self.label_gen = tk.Label(progress_frame, text=f'spectrum {0} of {0}', width=20, anchor=tk.W)
+
+        self.progressbar_loc = ttk.Progressbar(progress_frame, orient='horizontal', length=200)
+
+        self.progressbar_gen = ttk.Progressbar(progress_frame, orient='horizontal', length=200)
+
+        self.hintlabel = tk.Label(progress_frame, text='', width=50, anchor=tk.W)
+
+        logo_localsettings = tk.PhotoImage(data=gui_things.PL_ggear)
+        B_localsettings = gui_things.Button(selection_frame, image=logo_localsettings, hint='change fitting/elaboration settings', hint_destination=self.hintlabel, command=lambda : self._batchsettings_window(parent))
+        B_localsettings.grid(row=0, column=0, padx=5, sticky=tk.NW)
+        B_localsettings.image = logo_localsettings
+
+        characterizations = [''] + [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'characterizations')) if filename.lower().endswith('.dcr')]
+        self.calibration_selector_CB = gui_things.Combobox(selection_frame, width=25, state='readonly')
+        self.calibration_selector_CB['values'] = characterizations
+        self.calibration_selector_CB.grid(row=1, column=1, sticky=tk.E)
+        self.calibration_selector_CB.set('')
+
+        self.which_preset_V = tk.IntVar(parent)
+
+        #presets (classic)
+        presetlist = [''] + [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')]
+        self.preset_selector_CB = gui_things.Combobox(selection_frame, width=25, state='readonly')
+        self.preset_selector_CB['values'] = presetlist
+        self.preset_selector_CB.grid(row=2, column=1, sticky=tk.E)
+        self.preset_selector_CB.set('')
+
+        RB_preset = tk.Radiobutton(selection_frame, text='', variable=self.which_preset_V, value=0)
+        RB_preset.grid(row=2, column=2, pady=3)
+
+        #presets (shiny new) the json thing! (or wahtever)
+        self.all_region_list = [naaobject._call_database(os.path.splitext(filename)[0],'presets','reg') for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.reg')]
+        self.regionloader_selector_CB = gui_things.Combobox(selection_frame, width=25, state='readonly')
+        self.regionloader_selector_CB['values'] = []
+        self.regionloader_selector_CB.grid(row=3, column=1, sticky=tk.E)
+        self.regionloader_selector_CB.set('')
+
+        RB_region = tk.Radiobutton(selection_frame, text='', variable=self.which_preset_V, value=1)
+        RB_region.grid(row=3, column=2, pady=3)
+
+        self.which_preset_V.set(0)
+
+        self.force_overwrite_V = tk.BooleanVar(parent)
+        CHB_force_overwrite = tk.Checkbutton(selection_frame, onvalue=1, offvalue=0, variable=self.force_overwrite_V, text='force overwrite')
+        CHB_force_overwrite.grid(row=4, column=0, columnspan=3, sticky=tk.W)
+        self.force_overwrite_V.set(False)
+
+        logo_batchelaborate = tk.PhotoImage(data=gui_things.PL_gearpeak)
+        B_batchelaborate = gui_things.Button(selection_frame, image=logo_batchelaborate, hint='elaborate all spectra in batch', hint_destination=self.hintlabel)
+        B_batchelaborate.grid(row=5, column=0, columnspan=3, pady=10)
+        B_batchelaborate.image = logo_batchelaborate
+
+        selection_frame.pack(anchor=tk.CENTER, padx=5, pady=5)
+
+        self.label_loc.grid(row=0, column=0, sticky=tk.W)
+        self.progressbar_loc.grid(row=0, column=1, sticky=tk.EW, pady=8, padx=10)
+        self.label_gen.grid(row=1, column=0, sticky=tk.W)
+        self.progressbar_gen.grid(row=1, column=1, sticky=tk.EW, pady=8, padx=10)
+
+        self.hintlabel.grid(row=2, column=0, columnspan=2, sticky=tk.EW)
+        progress_frame.pack(anchor=tk.NW)
+
+        self.calibration_selector_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._selection_region())
+        self.preset_selector_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>', widgetA=self.preset_selector_CB, widgetB=RB_preset : self._pickme(widgetA, widgetB))
+        self.regionloader_selector_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>', widgetA=self.regionloader_selector_CB, widgetB=RB_region : self._pickme(widgetA, widgetB))
+
+        B_batchelaborate.configure(command=lambda : self._perform_batch_elaboration(parent, k0_database, LBlist, selection_frame))
+
+    def _pickme(self, widgetA, widgetB):
+        if widgetA.get() != '':
+            self.which_preset_V.set(widgetB.cget('value'))
+
+    def _selection_region(self):
+        sublist = [item.name for item in self.all_region_list if item.calname == self.calibration_selector_CB.get()]
+        self.regionloader_selector_CB['values'] = [''] + sublist
+        self.regionloader_selector_CB.set('')
+
+    def _confirm_local_settings(self):
+        #checks
+        proceed = 'settings updated'
+        key = 'K'
+        if self._settings[key].get() < self._settings['LK'].get():
+            proceed = ''
+        else:
+            self.region_options[key] = self._settings[key].get()
+            self.peak_search['LK'] = self._settings['LK'].get()
+
+        key = 'height'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'threshold'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'distance'
+        try:
+            value = int(float(self._settings[key].get()))
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'min_prominence'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'wlen'
+        try:
+            value = int(float(self._settings[key].get()))
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'rel_height'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'plateau_size'
+        PS_min, PS_max = self._settings[key][0].get(), self._settings[key][1].get()
+        if PS_max < PS_min:
+            proceed = ''
+        else:
+            self.peak_search[key] = (PS_min, PS_max)
+
+        key = 'E_min'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'E_max'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        #peak fitting
+        key = 'min_netarea'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_unc'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_centroid_unc'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_chisq'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'left_skew'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'right_skew'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'slope'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'step'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'bound_peak'
+        self.peak_fit[key] = self._settings[key].get()
+
+        key = 'bound_fwhm'
+        self.peak_fit[key] = self._settings[key].get()
+
+        self.sub_hintlabel.configure(text=proceed)
+
+    def _batchsettings_window(self, parent):
+        try:
+            self.settings_subwindows.focus()
+        except (Exception, AttributeError):
+            self._settings = {}
+
+            self.settings_subwindows = tk.Toplevel(parent)
+            self.settings_subwindows.title('Fit settings')
+            self.settings_subwindows.resizable(False, False)
+
+            self.sub_hintlabel = tk.Label(self.settings_subwindows, text='', anchor=tk.W)
+
+            peak_identification_frame = tk.LabelFrame(self.settings_subwindows, labelwidget=tk.Label(self.settings_subwindows, text='peak identification'), relief='solid', bd=2, padx=4, pady=4)
+            peak_identification_frame.grid(row=0, column=0, rowspan=2, padx=5, pady=5, sticky=tk.NW)
+
+            tk.Label(peak_identification_frame, text='total').grid(row=0, column=1)
+            tk.Label(peak_identification_frame, text='active').grid(row=0, column=2)
+
+            gui_things.Label(peak_identification_frame, text='K_FWHM', hint='width of a region as factor of FWHM (active <= total)', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+            total_K = gui_things.FSlider(peak_identification_frame, decimals=1, default=self.region_options['K'], from_=2.0, to=6.0, length=100, resolution=0.1)
+            total_K.grid(row=1, column=1, sticky=tk.EW, padx=3)
+            self._settings['K'] = total_K
+
+            active_K = gui_things.FSlider(peak_identification_frame, decimals=1, default=self.peak_search['LK'], from_=2.0, to=6.0, length=100, resolution=0.1)
+            active_K.grid(row=1, column=2, sticky=tk.EW, padx=3)
+            self._settings['LK'] = active_K
+
+            tk.Frame(peak_identification_frame).grid(row=2, column=0, pady=5)
+
+            gui_things.Label(peak_identification_frame, text='height', hint='height', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=3, column=0, sticky=tk.W)
+
+            height_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['height'], width=15, from_=10, to=1010, increment=10)
+            height_SL.grid(row=3, column=1, columnspan=2, padx=10)
+            self._settings['height'] = height_SL
+
+            gui_things.Label(peak_identification_frame, text='threshold', hint='threshold', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=4, column=0, sticky=tk.W)
+
+            #threshold
+            thresh_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['threshold'], float_format='.2f', width=15, from_=1, to=200, divider=100, increment=1)
+            thresh_SL.grid(row=4, column=1, columnspan=2, padx=10)
+            self._settings['threshold'] = thresh_SL
+
+            gui_things.Label(peak_identification_frame, text='distance', hint='distance', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=5, column=0, sticky=tk.W)
+
+            distance_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['distance'], width=15, from_=2, to=20, increment=1)
+            distance_SL.grid(row=5, column=1, columnspan=2, padx=10)
+            self._settings['distance'] = distance_SL
+
+            gui_things.Label(peak_identification_frame, text='prominence', hint='prominence', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=6, column=0, sticky=tk.W)
+
+            #prominence
+            prom_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['min_prominence'], float_format='.2f', width=15, from_=5, to=55, divider=10, increment=5)
+            prom_SL.grid(row=6, column=1, columnspan=2, padx=10)
+            self._settings['min_prominence'] = prom_SL
+
+            gui_things.Label(peak_identification_frame, text='w len', hint='w len', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=7, column=0, sticky=tk.W)
+
+            #wlen
+            wlen_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['wlen'], float_format=None, width=15, from_=1, to=21, increment=1)
+            wlen_SL.grid(row=7, column=1, columnspan=2, padx=10)
+            self._settings['wlen'] = wlen_SL
+
+            gui_things.Label(peak_identification_frame, text='relative height', hint='relative height', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=8, column=0, sticky=tk.W)
+
+            #rel height
+            relhei_SL = gui_things.FSlider(peak_identification_frame, default=self.peak_search['rel_height'], decimals=1, length=150, from_=0.1, to=1.0, increment=0.1)
+            relhei_SL.grid(row=8, column=1, columnspan=2, padx=10)
+            self._settings['rel_height'] = relhei_SL
+
+            tk.Frame(peak_identification_frame).grid(row=9, column=0, pady=5)
+            tk.Label(peak_identification_frame, text='min').grid(row=10, column=1)
+            tk.Label(peak_identification_frame, text='max').grid(row=10, column=2)
+
+            gui_things.Label(peak_identification_frame, text='plateau size', hint='plateau size', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=11, column=0, sticky=tk.W)
+
+            pmin_SB = gui_things.Slider(peak_identification_frame, default=self.peak_search['plateau_size'][0], from_=1, to=5, length=100, resolution=1)
+            pmin_SB.grid(row=11, column=1, sticky=tk.EW, padx=3)
+
+            pmax_SB = gui_things.Slider(peak_identification_frame, default=self.peak_search['plateau_size'][1], from_=2, to=7, length=100, resolution=1)
+            pmax_SB.grid(row=11, column=2, sticky=tk.EW, padx=3)
+            self._settings['plateau_size'] = (pmin_SB, pmax_SB)
+            
+            gui_things.Label(peak_identification_frame, text='E limits / keV', hint='E limits / keV', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=12, column=0, sticky=tk.W)
+
+            #Emin
+            Emin_SB = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['E_min'], float_format=None, width=8, from_=1, to=200, increment=1)
+            Emin_SB.grid(row=12, column=1, sticky=tk.EW, padx=10)
+            self._settings['E_min'] = Emin_SB
+
+            #Emax
+            Emax_SB = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['E_max'], float_format=None, width=8, from_=1000, to=4000, increment=1)
+            Emax_SB.grid(row=12, column=2, sticky=tk.EW, padx=10)
+            self._settings['E_max'] = Emax_SB
+
+            fits_parameters_frame = tk.LabelFrame(self.settings_subwindows, labelwidget=tk.Label(self.settings_subwindows, text='peak fitting'), relief='solid', bd=2, padx=4, pady=4)
+            fits_parameters_frame.grid(row=0, column=1, padx=5, pady=5, sticky=tk.NW)
+
+            gui_things.Label(fits_parameters_frame, text='minimum net area', hint='discard peaks with net area less than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=0, column=0, sticky=tk.W)
+
+            #net area
+            neta_SB = gui_things.Slider(fits_parameters_frame, default=self.peak_search['min_netarea'], from_=10, to=1000, length=150, resolution=10)
+            neta_SB.grid(row=0, column=1, columnspan=2, padx=3)
+            self._settings['min_netarea'] = neta_SB
+
+            gui_things.Label(fits_parameters_frame, text='max peak uncertainty (fit)', hint='exclude regions where all peaks have higher statistical uncertainty', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+            count_statistics_SB = gui_things.Slider(fits_parameters_frame, percent=True, resolution=1, from_=5, to=50, length=150, default=self.peak_search['max_allowed_unc'])
+            count_statistics_SB.grid(row=1, column=1, columnspan=2, padx=3)
+            self._settings['max_allowed_unc'] = count_statistics_SB
+
+            gui_things.Label(fits_parameters_frame, text='max centroid uncertainty', hint='discard peaks with centroid uncertainty higher than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+            #centroid unc
+            centrunc_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_search['max_allowed_centroid_unc'], decimals=1, length=150, from_=0.5, to=6.0, resolution=0.5)
+            centrunc_SL.grid(row=2, column=1, columnspan=2, padx=10)
+            self._settings['max_allowed_centroid_unc'] = centrunc_SL
+
+            gui_things.Label(fits_parameters_frame, text='max chisq', hint='discard regions with chi-squared value higher than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=3, column=0, sticky=tk.W)
+
+            #chi-sq
+            chisq_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_search['max_allowed_chisq'], decimals=1, length=150, from_=1.5, to=20.0, resolution=0.5)
+            chisq_SL.grid(row=3, column=1, columnspan=2, padx=10)
+            self._settings['max_allowed_chisq'] = chisq_SL
+
+            gui_things.Label(fits_parameters_frame, text='peak features', hint='allow selected peak features', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=4, column=0, sticky=tk.W)
+
+            LS_VB = tk.BooleanVar(fits_parameters_frame)
+            RS_VB = tk.BooleanVar(fits_parameters_frame)
+
+            LS_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=LS_VB, text='left skew')
+            LS_ChB.grid(row=4, column=1, sticky=tk.W)
+            LS_VB.set(self.peak_search['left_skew'])
+            self._settings['left_skew'] = LS_VB
+
+            RS_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=RS_VB, text='right skew')
+            RS_ChB.grid(row=4, column=2, sticky=tk.W)
+            RS_VB.set(self.peak_search['right_skew'])
+            self._settings['right_skew'] = RS_VB
+
+            SL_VB = tk.BooleanVar(fits_parameters_frame)
+            ST_VB = tk.BooleanVar(fits_parameters_frame)
+
+            SP_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=SL_VB, text='slope')
+            SP_ChB.grid(row=5, column=1, sticky=tk.W)
+            SL_VB.set(self.peak_search['slope'])
+            self._settings['slope'] = SL_VB
+
+            ST_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=ST_VB, text='step')
+            ST_ChB.grid(row=5, column=2, sticky=tk.W)
+            ST_VB.set(self.peak_search['step'])
+            self._settings['step'] = ST_VB
+            
+            gui_things.Label(fits_parameters_frame, text='background features', hint='allow selected background features', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=5, column=0, sticky=tk.W)
+
+            gui_things.Label(fits_parameters_frame, text='peak centroid boundaries', hint='limits the centroid to ±FWHM/X', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=6, column=0, sticky=tk.W)
+
+            #peak centroid boundaries
+            PCB_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_fit['bound_peak'], decimals=1, length=150, from_=1.0, to=10.0, resolution=0.1)
+            PCB_SL.grid(row=6, column=1, columnspan=2, padx=10)
+            self._settings['bound_peak'] = PCB_SL
+
+            gui_things.Label(fits_parameters_frame, text='peak sigma boundaries', hint='limits sigma to FWHM/(X*1.665) and FWHM*(X/1.665)', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=7, column=0, sticky=tk.W)
+
+            #fhwm boundaries
+            FWHMB_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_fit['bound_fwhm'], decimals=1, length=150, from_=1.0, to=10.0, resolution=0.1)
+            FWHMB_SL.grid(row=7, column=1, columnspan=2, padx=10)
+            self._settings['bound_fwhm'] = FWHMB_SL
+
+            #button confirm
+            logo_confirm_settings = tk.PhotoImage(data=gui_things.PL_check)
+            B_confirm_settings = gui_things.Button(self.settings_subwindows, image=logo_confirm_settings, hint='confirm settings', hint_destination=self.sub_hintlabel, command=lambda : self._confirm_local_settings())
+            B_confirm_settings.grid(row=2, column=0, columnspan=2)
+            B_confirm_settings.image = logo_confirm_settings
+
+            self.sub_hintlabel.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky=tk.NW)
+
+    def _perform_batch_elaboration(self, parent, k0_database, LBlist, selection_frame):
+        try:
+            self.settings_subwindows.destroy()
+        except AttributeError:
+            pass
+        if self.calibration_selector_CB.get() != '':
+            self._batch(parent, k0_database, LBlist, selection_frame)
+        else:
+            self.hintlabel.configure(text='select calibration!')
+
+    def _batch(self, parent, k0_database, LBlist, selection_frame):
+
+        def _check_item(item):
+            if len(item.original_peak_list) > 0 and item.elaborated_peak_list is not None:
+                return True
+            elif len(item.original_peak_list) > 0 or item.elaborated_peak_list is not None:
+                return False
+            return None
+
+        funny_sentences = ('')
+
+        for child in selection_frame.winfo_children():
+            child.grid_forget()
+
+        self.header_label.configure(text='batch elaboration summary')
+        line1 = f'{self.calibration_selector_CB.get()}'
+
+        if self.which_preset_V.get() == 0:
+            prehed = 'element preset:'
+            line2 = f'{self.preset_selector_CB.get()}'
+
+            #preset and/or pregions
+            preset = self._recall_preset(self.preset_selector_CB.get())
+
+            if preset is not None and preset != ():
+                subdatabase_filter = k0_database['target'].isin(preset)
+                subdatabase = k0_database[subdatabase_filter]
+
+                energies = np.sort(subdatabase['E'])
+            else:
+                energies = None
+
+            pregions = None
+
+        elif self.which_preset_V.get() == 1:
+            prehed = 'custom regions:'
+            line2 = f'{self.regionloader_selector_CB.get()}'
+
+            #preset and/or pregions
+            rname = self.regionloader_selector_CB.get()
+            pregions = None
+            for item in self.all_region_list:
+                if item.name == rname:
+                    pregions = item
+                    break
+
+            energies = None
+        
+        line3 = f'{self.force_overwrite_V.get()}'
+        tk.Label(selection_frame, text='calibration:', anchor=tk.W).grid(row=0, column=0, sticky=tk.W)
+        tk.Label(selection_frame, text=line1, anchor=tk.W).grid(row=0, column=1, sticky=tk.W)
+        tk.Label(selection_frame, text=prehed, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+        tk.Label(selection_frame, text=line2, anchor=tk.W).grid(row=1, column=1, sticky=tk.W)
+        tk.Label(selection_frame, text='force overwrite:', anchor=tk.W, width=18).grid(row=2, column=0, sticky=tk.W)
+        tk.Label(selection_frame, text=line3, anchor=tk.W).grid(row=2, column=1, sticky=tk.W)
+
+        #calibration
+        c_name = self.calibration_selector_CB.get()
+
+        det_characterization = naaobject._call_database(c_name, 'characterizations', 'dcr')
+
+        #set pbars
+        self.label_gen.configure(text=f'spectrum {0} of {len(self.elabelaboration_list)}')
+        self.progressbar_gen['maximum'] = len(self.elabelaboration_list)
+        self.progressbar_gen['value'] = 0
+        self.progressbar_gen.update()
+
+        #cycle
+        for spectrum_index, spectrum in enumerate(self.elabelaboration_list):
+            self.label_gen.configure(text=f'spectrum {spectrum_index+1} of {len(self.elabelaboration_list)}')
+            self.progressbar_gen['value'] = spectrum_index + 1
+            self.progressbar_gen.update()
+
+            #check
+            if spectrum.elaboration is None or self.force_overwrite_V.get():
+
+                spectrum.elaboration = pk_elab.Elaboration(spectrum, det_characterization, **self.region_options)
+            
+                spectrum.elaboration._autoregion_search(energies=energies, pregions=pregions, **self.peak_search)
+
+                self.label_loc.configure(text=f'region {0} of {len(spectrum.elaboration.regions)}')
+                self.progressbar_loc['maximum'] = len(spectrum.elaboration.regions)
+                self.progressbar_loc['value'] = 0
+                self.progressbar_loc.update()
+
+                _spectrump = spectrum.counts
+                cal_fwhm = spectrum.elaboration.cal_fwhm
+
+                #regions
+                for nreg, reg in enumerate(spectrum.elaboration.regions):
+                    reg.elaboration_fit(_spectrump, cal_fwhm, peak_opts=self.peak_fit)
+
+                    self.label_loc.configure(text=f'region {nreg+1} of {len(spectrum.elaboration.regions)}')
+                    self.progressbar_loc['value'] = nreg + 1
+                    self.progressbar_loc.update()
+
+                #save elaboration on disc
+                plist = self.elabelaboration_list[spectrum_index].elaboration._get_peaklist()
+
+                self.elabelaboration_list[spectrum_index].elaborated_peak_list = [row for row in plist]
+
+                self.elabelaboration_list[spectrum_index].elaboration_date = datetime.datetime.today()
+
+                #save spectrum on disc
+                self.elabelaboration_list[spectrum_index]._save()
+
+            else:
+                self.hintlabel.configure(text='skipped')
+
+        #update listbox
+        condition = [_check_item(item) for item in self.elabelaboration_list]
+        LBlist._triplecolored_update(condition)
+
+        self.hintlabel.configure(text='batch elaboration completed')
+
+    def _recall_preset(self, filename):
+        """Return element list from selected preset"""
+        if filename == '':
+            return ()
+        element_list = naaobject._call_database(filename, 'presets', 'pst')
+        return element_list
+
+
+class ElaborationWindow:
+    """Multi faceted elaboration window"""
+    def __init__(self, parent, M, elaboration_list, LBlist):
+
+        try:
+            ixx = LBlist.curselection()[0]
+        except IndexError:
+            ixx = 0
+
+        self.elabelaboration_list = elaboration_list
+        self.spectrum_index = ixx
+        self.subwindows = []
+        self.elaboration_bis_window = None
+        #self.fitsettings_window = None
+
+        #transfer to M.settings to self.peak_options
+        self.region_options = {'K':3.5}
+        self.peak_search = {'LK':3.5, 'height':None, 'threshold':0.05, 'distance':4, 'min_prominence':2, 'wlen':10, 'rel_height':0.5, 'plateau_size':(1,2), 'E_min':50, 'E_max':None, 'min_netarea':100, 'max_allowed_unc':40, 'max_allowed_centroid_unc':2, 'max_allowed_chisq':5, 'left_skew':True, 'right_skew':True, 'slope':True, 'step':True}
+        self.peak_fit = {'bound_peak':2, 'bound_fwhm':2}
+        self.use_fictitional_calibration_V = tk.BooleanVar(parent)
+        self._fictitional_calibration = {'energy_slope':0.25, 'fwhm_intercept':None}
+
+        parent.title('Peak elaboration')
+        parent.resizable(False, False)
+
+        wholepackage_frame = tk.Frame(parent)
+
+        self.progressbar = ttk.Progressbar(wholepackage_frame, orient='horizontal')
+        self.hintlabel = tk.Label(wholepackage_frame, text='', width=70, anchor=tk.W)
+
+        spectrum_selection = tk.LabelFrame(wholepackage_frame, labelwidget=tk.Label(wholepackage_frame, text='spectrum selection'), relief='solid', bd=2, padx=4, pady=4)
+
+        tk.Label(spectrum_selection, text='current', anchor=tk.W).pack(side=tk.LEFT)
+        self.spectrum_selector_CB = gui_things.LockedCombobox(spectrum_selection, data=[item.filename() for item in self.elabelaboration_list], initial_index=self.spectrum_index, initial_state='readonly')
+        self.spectrum_selector_CB.pack(side=tk.LEFT)
+
+        tk.Frame(spectrum_selection).pack(side=tk.LEFT, padx=10)
+
+        tk.Label(spectrum_selection, text='calibration', anchor=tk.W).pack(side=tk.LEFT)
+        characterizations = [''] + [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'characterizations')) if filename.lower().endswith('.dcr')]
+        self.calibration_selector_CB = gui_things.LockedCombobox(spectrum_selection, data=characterizations, initial_state='readonly')
+        self.calibration_selector_CB.pack(side=tk.LEFT)
+        if len(characterizations) > 1:
+            self.use_fictitional_calibration_V.set(False)
+        else:
+            self.use_fictitional_calibration_V.set(True)
+
+        current_elaboration = self.elabelaboration_list[self.spectrum_index].elaboration
+
+        if current_elaboration is not None and current_elaboration.calname in characterizations:
+            self.calibration_selector_CB.Combobox.set(current_elaboration.calname)
+            if self.calibration_selector_CB.state == 'readonly':
+                self.calibration_selector_CB._u_lock()
+        else:
+            self.elabelaboration_list[self.spectrum_index].elaboration = None
+            self.calibration_selector_CB.Combobox.set('')
+            if self.calibration_selector_CB.state == 'disabled':
+                self.calibration_selector_CB._u_lock()
+
+        tk.Frame(spectrum_selection).pack(side=tk.LEFT, padx=10)
+
+        tk.Label(spectrum_selection, text='preset', anchor=tk.W).pack(side=tk.LEFT)
+        presetlist = [''] + [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.pst')]
+        self.preset_selector_CB = gui_things.LockedCombobox(spectrum_selection, data=presetlist, initial_state='readonly')
+        self.preset_selector_CB.pack(side=tk.LEFT)
+
+        logo_peakelaboration_settings = tk.PhotoImage(data=gui_things.PL_ggear)
+        B_peakelaboration_settings = gui_things.Button(spectrum_selection, image=logo_peakelaboration_settings, hint='peak elaboration settings', hint_destination=self.hintlabel, command=lambda : self._setfitsetting(parent))
+        B_peakelaboration_settings.pack(side=tk.RIGHT, anchor=tk.E)
+        B_peakelaboration_settings.image = logo_peakelaboration_settings
+
+        spectrum_selection.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=5)
+
+        spectrum_information = tk.LabelFrame(wholepackage_frame, labelwidget=tk.Label(wholepackage_frame, text='spectrum information'), relief='solid', bd=2, padx=4, pady=4)
+
+        tk.Label(spectrum_information, text='start acquisition', width=15, anchor=tk.W).grid(row=0, column=0, sticky=tk.NW)
+        tk.Label(spectrum_information, text='real time / s', width=15, anchor=tk.W).grid(row=1, column=0, sticky=tk.NW)
+        tk.Label(spectrum_information, text='live time / s', width=15, anchor=tk.W).grid(row=2, column=0, sticky=tk.NW)
+
+        tk.Label(spectrum_information, text='channels', width=15, anchor=tk.W).grid(row=0, column=2, sticky=tk.NW)
+        tk.Label(spectrum_information, text='total counts', width=15, anchor=tk.W).grid(row=1, column=2, sticky=tk.NW)
+        tk.Label(spectrum_information, text='dead time / 1', width=15, anchor=tk.W).grid(row=2, column=2, sticky=tk.NW)
+
+        tk.Label(spectrum_information, text='elaboration date', width=15, anchor=tk.W).grid(row=0, column=4, sticky=tk.NW)
+
+        self.acq_date = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.acq_date.grid(row=0, column=1, sticky=tk.NW)
+        self.realtime = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.realtime.grid(row=1, column=1, sticky=tk.NW)
+        self.livetime = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.livetime.grid(row=2, column=1, sticky=tk.NW)
+        self.nchannels = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.nchannels.grid(row=0, column=3, sticky=tk.NW)
+        self.totcounts = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.totcounts.grid(row=1, column=3, sticky=tk.NW)
+        self.deadtime = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.deadtime.grid(row=2, column=3, sticky=tk.NW)
+        self.elab_date = tk.Label(spectrum_information, text='', width=20, anchor=tk.W)
+        self.elab_date.grid(row=0, column=5, sticky=tk.NW)
+
+        spectrum_information.grid(row=1, column=0, sticky=tk.EW, padx=5, pady=5)
+
+        spectrum_display = tk.LabelFrame(wholepackage_frame, labelwidget=tk.Label(wholepackage_frame, text='spectrum profile'), relief='solid', bd=2, padx=4, pady=4)
+
+        self.figure = Figure(figsize=(8, 4))
+        self.figure.patch.set_alpha(0.0)
+        self.ax = self.figure.add_subplot(111)
+        Figur = tk.Frame(spectrum_display)
+        Figur.grid(row=0, column=0, sticky=tk.NSEW)
+        self.canvas = FigureCanvasTkAgg(self.figure, master=Figur)
+        self.ax.set_xlabel('channel / 1')
+        self.figure.tight_layout()
+        self.canvas.draw()
+        self.canvas.get_tk_widget().configure(background=parent.cget('bg'))
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self._top = None
+
+        #slider space
+        self.slider = gui_things.FDiscreteSlider(spectrum_display, label_width=6, decimals=0, unit_format='', values=[])
+        self.slider.drg = 0
+        self.slider.grid(row=1, column=0, sticky=tk.EW)
+
+        spectrum_display.grid(row=2, column=0, sticky=tk.NW, padx=5, pady=5)
+
+        self.fitting_label = tk.Label(wholepackage_frame, text='fitting regions (0)')
+
+        region_shenanigans = tk.LabelFrame(wholepackage_frame, labelwidget=self.fitting_label, relief='solid', bd=2, padx=4, pady=4)
+
+        self.regionlist_LB = gui_things.ScrollableListbox(region_shenanigans, width=30, height=25, data=[])
+
+        self.regionlist_LB.pack(side=tk.TOP, anchor=tk.NW)
+
+        buttons_pack = tk.Frame(region_shenanigans)
+
+        logo_defineregion = tk.PhotoImage(data=gui_things.PL_list)
+        B_defineregion = gui_things.Button(buttons_pack, image=logo_defineregion, hint='define regions', hint_destination=self.hintlabel, command=lambda : self.define_region_work(M))
+        B_defineregion.grid(row=0, column=0)
+        B_defineregion.image = logo_defineregion
+
+        #fit unfitted regions
+        logo_fit_unfitted = tk.PhotoImage(data=gui_things.PL_gearpeak)
+        B_fit_unfitted = gui_things.Button(buttons_pack, image=logo_fit_unfitted, hint='elaborate regions', hint_destination=self.hintlabel, command=lambda : self._elaborate_regions())
+        B_fit_unfitted.grid(row=1, column=0)
+        B_fit_unfitted.image = logo_fit_unfitted
+
+        #delete unfitted regions
+        logo_delete_selected = tk.PhotoImage(data=gui_things.PL_none)
+        B_delete_selected = gui_things.Button(buttons_pack, image=logo_delete_selected, hint='delete selected unfitted region', hint_destination=self.hintlabel, command=lambda : self._delete_selected_region())
+        B_delete_selected.grid(row=0, column=2)
+        B_delete_selected.image = logo_delete_selected
+
+        #delete unfitted regions
+        logo_delete_unfitted = tk.PhotoImage(data=gui_things.PL_letter_forall)
+        B_delete_unfitted = gui_things.Button(buttons_pack, image=logo_delete_unfitted, hint='delete all unfitted regions', hint_destination=self.hintlabel, command=lambda : self._delete_unfittable_regions())
+        B_delete_unfitted.grid(row=0, column=3)
+        B_delete_unfitted.image = logo_delete_unfitted
+
+        #save regions informations
+        logo_savereg_information = tk.PhotoImage(data=gui_things.PL_save)
+        B_savereg_information = gui_things.Button(buttons_pack, image=logo_savereg_information, hint='store information about regions', hint_destination=self.hintlabel, command=lambda : self._store_region_info())
+        B_savereg_information.grid(row=0, column=4)
+        B_savereg_information.image = logo_savereg_information
+
+        #add region
+        logo_add_region = tk.PhotoImage(data=gui_things.PL_plussign)
+        B_add_region = gui_things.Button(buttons_pack, image=logo_add_region, hint='add region to list', hint_destination=self.hintlabel, command=lambda : self._add_region(parent))
+        B_add_region.grid(row=0, column=1)
+        B_add_region.image = logo_add_region
+
+        logo_detailfit = tk.PhotoImage(data=gui_things.PL_peakfit)
+        B_detailfit = gui_things.Button(buttons_pack, image=logo_detailfit, hint='display fit result', hint_destination=self.hintlabel, command=lambda : self._peek_fitpeak(parent))
+        B_detailfit.grid(row=1, column=1)
+        B_detailfit.image = logo_detailfit
+
+        logo_reevaluate_region = tk.PhotoImage(data=gui_things.PL_convergence)
+        B_reevaluate_region = gui_things.Button(buttons_pack, image=logo_reevaluate_region, hint='modify region parameters', hint_destination=self.hintlabel, command=lambda : self._elaboration_bis(parent, M))
+        B_reevaluate_region.grid(row=1, column=2)
+        B_reevaluate_region.image = logo_reevaluate_region
+
+        logo_createpeaklist = tk.PhotoImage(data=gui_things.PL_peak_list)
+        B_createpeaklist = gui_things.Button(buttons_pack, image=logo_createpeaklist, hint='create peaklist from elaboration', hint_destination=self.hintlabel, command=lambda : self._save_peaklist(LBlist))
+        B_createpeaklist.grid(row=1, column=3)
+        B_createpeaklist.image = logo_createpeaklist
+ 
+        buttons_pack.pack(anchor=tk.NW)
+
+        region_shenanigans.grid(row=1, column=1, rowspan=2, sticky=tk.NS, padx=5, pady=5)
+
+        self.progressbar.grid(row=3, column=0, columnspan=2, sticky=tk.EW)
+        self.progressbar['value'] = 1
+        self.progressbar['maximum'] = 1
+        self.progressbar.update()
+
+        self.hintlabel.grid(row=4, column=0, columnspan=2, sticky=tk.EW)
+
+        wholepackage_frame.pack(anchor=tk.NW)
+
+        self.spectrum_selector_CB.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._change_selection())
+
+        self.calibration_selector_CB.Combobox.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._change_the_settings())
+
+        self.regionlist_LB.listbox.bind('<Double-1>', lambda e='<Double-1>' : self._center_region_plot())
+
+        self._change_selection()
+        self.slider.variable.trace_add('write', lambda a,b,c : self._update_plot())
+
+    def _confirm_local_settings(self):
+        #checks
+        proceed = 'settings updated'
+        key = 'K'
+        if self._settings[key].get() < self._settings['LK'].get():
+            proceed = ''
+        else:
+            self.region_options[key] = self._settings[key].get()
+            self.peak_search['LK'] = self._settings['LK'].get()
+
+        key = 'height'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'threshold'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'distance'
+        try:
+            value = int(float(self._settings[key].get()))
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'min_prominence'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'wlen'
+        try:
+            value = int(float(self._settings[key].get()))
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'rel_height'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'plateau_size'
+        PS_min, PS_max = self._settings[key][0].get(), self._settings[key][1].get()
+        if PS_max < PS_min:
+            proceed = ''
+        else:
+            self.peak_search[key] = (PS_min, PS_max)
+
+        key = 'E_min'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        key = 'E_max'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self.peak_search[key] = value
+
+        #peak fitting
+        key = 'min_netarea'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_unc'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_centroid_unc'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'max_allowed_chisq'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'left_skew'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'right_skew'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'slope'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'step'
+        self.peak_search[key] = self._settings[key].get()
+
+        key = 'bound_peak'
+        self.peak_fit[key] = self._settings[key].get()
+
+        key = 'bound_fwhm'
+        self.peak_fit[key] = self._settings[key].get()
+
+        key = 'energy_slope'
+        self._fictitional_calibration[key] = self._settings[key].get()
+
+        key = 'fwhm_intercept'
+        try:
+            value = float(self._settings[key].get())
+        except TypeError:
+            proceed = ''
+            value = None
+        self._fictitional_calibration[key] = value
+
+        self.sub_hintlabel.configure(text=proceed)
+
+    def _setfitsetting(self, parent):
+        try:
+            self.elaboration_bis_window.destroy()
+        except AttributeError:
+            pass
+
+        self._settings = {}
+
+        self.elaboration_bis_window = tk.Toplevel(parent)
+        self.elaboration_bis_window.title('Fit settings')
+        self.elaboration_bis_window.resizable(False, False)
+
+        self.sub_hintlabel = tk.Label(self.elaboration_bis_window, text='', anchor=tk.W)
+
+        peak_identification_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='peak identification'), relief='solid', bd=2, padx=4, pady=4)
+        peak_identification_frame.grid(row=0, column=0, rowspan=2, padx=5, pady=5, sticky=tk.NW)
+
+        tk.Label(peak_identification_frame, text='total').grid(row=0, column=1)
+        tk.Label(peak_identification_frame, text='active').grid(row=0, column=2)
+
+        gui_things.Label(peak_identification_frame, text='K_FWHM', hint='width of a region as factor of FWHM (active <= total)', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+        total_K = gui_things.FSlider(peak_identification_frame, decimals=1, default=self.region_options['K'], from_=2.0, to=6.0, length=100, resolution=0.1)
+        total_K.grid(row=1, column=1, sticky=tk.EW, padx=3)
+        self._settings['K'] = total_K
+
+        active_K = gui_things.FSlider(peak_identification_frame, decimals=1, default=self.peak_search['LK'], from_=2.0, to=6.0, length=100, resolution=0.1)
+        active_K.grid(row=1, column=2, sticky=tk.EW, padx=3)
+        self._settings['LK'] = active_K
+
+        tk.Frame(peak_identification_frame).grid(row=2, column=0, pady=5)
+
+        gui_things.Label(peak_identification_frame, text='height', hint='height', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=3, column=0, sticky=tk.W)
+
+        height_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['height'], width=15, from_=10, to=1010, increment=10)
+        height_SL.grid(row=3, column=1, columnspan=2, padx=10)
+        self._settings['height'] = height_SL
+
+        gui_things.Label(peak_identification_frame, text='threshold', hint='threshold', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=4, column=0, sticky=tk.W)
+
+        #threshold
+        thresh_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['threshold'], float_format='.2f', width=15, from_=1, to=200, divider=100, increment=1)
+        thresh_SL.grid(row=4, column=1, columnspan=2, padx=10)
+        self._settings['threshold'] = thresh_SL
+
+        gui_things.Label(peak_identification_frame, text='distance', hint='distance', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=5, column=0, sticky=tk.W)
+
+        distance_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['distance'], width=15, from_=2, to=20, increment=1)
+        distance_SL.grid(row=5, column=1, columnspan=2, padx=10)
+        self._settings['distance'] = distance_SL
+
+        gui_things.Label(peak_identification_frame, text='prominence', hint='prominence', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=6, column=0, sticky=tk.W)
+
+        #prominence
+        prom_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['min_prominence'], float_format='.2f', width=15, from_=5, to=55, divider=10, increment=5)
+        prom_SL.grid(row=6, column=1, columnspan=2, padx=10)
+        self._settings['min_prominence'] = prom_SL
+
+        gui_things.Label(peak_identification_frame, text='w len', hint='w len', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=7, column=0, sticky=tk.W)
+
+        #wlen
+        wlen_SL = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['wlen'], float_format=None, width=15, from_=1, to=21, increment=1)
+        wlen_SL.grid(row=7, column=1, columnspan=2, padx=10)
+        self._settings['wlen'] = wlen_SL
+
+        gui_things.Label(peak_identification_frame, text='relative height', hint='relative height', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=8, column=0, sticky=tk.W)
+
+        #rel height
+        relhei_SL = gui_things.FSlider(peak_identification_frame, default=self.peak_search['rel_height'], decimals=1, length=150, from_=0.1, to=1.0, increment=0.1)
+        relhei_SL.grid(row=8, column=1, columnspan=2, padx=10)
+        self._settings['rel_height'] = relhei_SL
+
+        tk.Frame(peak_identification_frame).grid(row=9, column=0, pady=5)
+        tk.Label(peak_identification_frame, text='min').grid(row=10, column=1)
+        tk.Label(peak_identification_frame, text='max').grid(row=10, column=2)
+
+        gui_things.Label(peak_identification_frame, text='plateau size', hint='plateau size', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=11, column=0, sticky=tk.W)
+
+        pmin_SB = gui_things.Slider(peak_identification_frame, default=self.peak_search['plateau_size'][0], from_=1, to=5, length=100, resolution=1)
+        pmin_SB.grid(row=11, column=1, sticky=tk.EW, padx=3)
+
+        pmax_SB = gui_things.Slider(peak_identification_frame, default=self.peak_search['plateau_size'][1], from_=2, to=7, length=100, resolution=1)
+        pmax_SB.grid(row=11, column=2, sticky=tk.EW, padx=3)
+        self._settings['plateau_size'] = (pmin_SB, pmax_SB)
+        
+        gui_things.Label(peak_identification_frame, text='E limits / keV', hint='E limits / keV', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=12, column=0, sticky=tk.W)
+
+        #Emin
+        Emin_SB = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['E_min'], float_format=None, width=8, from_=1, to=200, increment=1)
+        Emin_SB.grid(row=12, column=1, sticky=tk.EW, padx=10)
+        self._settings['E_min'] = Emin_SB
+
+        #Emax
+        Emax_SB = gui_things.NoneSpinbox(peak_identification_frame, default=self.peak_search['E_max'], float_format=None, width=8, from_=1000, to=4000, increment=1)
+        Emax_SB.grid(row=12, column=2, sticky=tk.EW, padx=10)
+        self._settings['E_max'] = Emax_SB
+
+        fits_parameters_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='peak fitting'), relief='solid', bd=2, padx=4, pady=4)
+        fits_parameters_frame.grid(row=0, column=1, padx=5, pady=5, sticky=tk.NW)
+
+        gui_things.Label(fits_parameters_frame, text='minimum net area', hint='discard peaks with net area less than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=0, column=0, sticky=tk.W)
+
+        #net area
+        neta_SB = gui_things.Slider(fits_parameters_frame, default=self.peak_search['min_netarea'], from_=10, to=1000, length=150, resolution=10)
+        neta_SB.grid(row=0, column=1, columnspan=2, padx=3)
+        self._settings['min_netarea'] = neta_SB
+
+        gui_things.Label(fits_parameters_frame, text='max peak uncertainty (fit)', hint='exclude regions where all peaks have higher statistical uncertainty', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+        count_statistics_SB = gui_things.Slider(fits_parameters_frame, percent=True, resolution=1, from_=5, to=50, length=150, default=self.peak_search['max_allowed_unc'])
+        count_statistics_SB.grid(row=1, column=1, columnspan=2, padx=3)
+        self._settings['max_allowed_unc'] = count_statistics_SB
+
+        gui_things.Label(fits_parameters_frame, text='max centroid uncertainty', hint='discard peaks with centroid uncertainty higher than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+        #centroid unc
+        centrunc_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_search['max_allowed_centroid_unc'], decimals=1, length=150, from_=0.5, to=6.0, resolution=0.5)
+        centrunc_SL.grid(row=2, column=1, columnspan=2, padx=10)
+        self._settings['max_allowed_centroid_unc'] = centrunc_SL
+
+        gui_things.Label(fits_parameters_frame, text='max chisq', hint='discard regions with chi-squared value higher than', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=3, column=0, sticky=tk.W)
+
+        #chi-sq
+        chisq_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_search['max_allowed_chisq'], decimals=1, length=150, from_=1.5, to=20.0, resolution=0.5)
+        chisq_SL.grid(row=3, column=1, columnspan=2, padx=10)
+        self._settings['max_allowed_chisq'] = chisq_SL
+
+        gui_things.Label(fits_parameters_frame, text='peak features', hint='allow selected peak features', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=4, column=0, sticky=tk.W)
+
+        LS_VB = tk.BooleanVar(fits_parameters_frame)
+        RS_VB = tk.BooleanVar(fits_parameters_frame)
+
+        LS_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=LS_VB, text='left skew')
+        LS_ChB.grid(row=4, column=1, sticky=tk.W)
+        LS_VB.set(self.peak_search['left_skew'])
+        self._settings['left_skew'] = LS_VB
+
+        RS_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=RS_VB, text='right skew')
+        RS_ChB.grid(row=4, column=2, sticky=tk.W)
+        RS_VB.set(self.peak_search['right_skew'])
+        self._settings['right_skew'] = RS_VB
+
+        SL_VB = tk.BooleanVar(fits_parameters_frame)
+        ST_VB = tk.BooleanVar(fits_parameters_frame)
+
+        SP_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=SL_VB, text='slope')
+        SP_ChB.grid(row=5, column=1, sticky=tk.W)
+        SL_VB.set(self.peak_search['slope'])
+        self._settings['slope'] = SL_VB
+
+        ST_ChB = tk.Checkbutton(fits_parameters_frame, onvalue=1, offvalue=0, variable=ST_VB, text='step')
+        ST_ChB.grid(row=5, column=2, sticky=tk.W)
+        ST_VB.set(self.peak_search['step'])
+        self._settings['step'] = ST_VB
+        
+        gui_things.Label(fits_parameters_frame, text='background features', hint='allow selected background features', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=5, column=0, sticky=tk.W)
+
+        gui_things.Label(fits_parameters_frame, text='peak centroid boundaries', hint='limits the centroid to ±FWHM/X', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=6, column=0, sticky=tk.W)
+
+        #peak centroid boundaries
+        PCB_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_fit['bound_peak'], decimals=1, length=150, from_=1.0, to=10.0, resolution=0.1)
+        PCB_SL.grid(row=6, column=1, columnspan=2, padx=10)
+        self._settings['bound_peak'] = PCB_SL
+
+        gui_things.Label(fits_parameters_frame, text='peak sigma boundaries', hint='limits sigma to FWHM/(X*1.665) and FWHM*(X/1.665)', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=7, column=0, sticky=tk.W)
+
+        #fhwm boundaries
+        FWHMB_SL = gui_things.FSlider(fits_parameters_frame, default=self.peak_fit['bound_fwhm'], decimals=1, length=150, from_=1.0, to=10.0, resolution=0.1)
+        FWHMB_SL.grid(row=7, column=1, columnspan=2, padx=10)
+        self._settings['bound_fwhm'] = FWHMB_SL
+
+        provisional_calibration_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='provisional calibration'), relief='solid', bd=2, padx=4, pady=4)
+        provisional_calibration_frame.grid(row=1, column=1, padx=5, pady=5, sticky=tk.NW)
+
+        MSC_ChB = gui_things.Checkbutton(provisional_calibration_frame, onvalue=1, offvalue=0, variable=self.use_fictitional_calibration_V, text='use provisional calibration', hint='use makeshift calibration if no calibration is selected', hint_destination=self.sub_hintlabel)
+        MSC_ChB.grid(row=0, column=0, columnspan=2, sticky=tk.W)
+
+        gui_things.Label(provisional_calibration_frame, text='energy slope / keV channel⁻¹', hint='use makeshift calibration instead of evaluated ones', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+        #energy slope
+        ene_calib_SL = gui_things.FSlider(provisional_calibration_frame, default=self._fictitional_calibration['energy_slope'], decimals=2, length=150, from_=0.01, to=10.00, resolution=0.01)
+        ene_calib_SL.grid(row=1, column=1, padx=10)
+        self._settings['energy_slope'] = ene_calib_SL
+
+        gui_things.Label(provisional_calibration_frame, text='FWHM intercept / channel', hint='use makeshift calibration instead of evaluated ones', hint_destination=self.sub_hintlabel, anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+        #FWHM
+        FWHM_calib_SB = gui_things.NoneSpinbox(provisional_calibration_frame, default=self._fictitional_calibration['fwhm_intercept'], float_format='.1f', divider=10, width=8, from_=1, to=200, increment=1)
+        FWHM_calib_SB.grid(row=2, column=1, padx=10)
+        self._settings['fwhm_intercept'] = FWHM_calib_SB
+
+        #button confirm
+        logo_confirm_settings = tk.PhotoImage(data=gui_things.PL_check)
+        B_confirm_settings = gui_things.Button(self.elaboration_bis_window, image=logo_confirm_settings, hint='confirm settings', hint_destination=self.sub_hintlabel, command=lambda : self._confirm_local_settings())
+        B_confirm_settings.grid(row=2, column=0, columnspan=2)
+        B_confirm_settings.image = logo_confirm_settings
+
+        self.sub_hintlabel.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky=tk.NW)
+
+    def _look_if_adjacent_regions_qualify(self, idx):
+        lenght = len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)
+        if lenght < 2:
+            return []
+        response = []
+        #previous
+        pidx = idx - 1
+        if pidx >= 0:
+            if self.elabelaboration_list[self.spectrum_index].elaboration.regions[pidx].high_limit >= self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].low_limit:
+                response.append('previous')
+
+        #following
+        fidx = idx + 1
+        if fidx < lenght - 1:
+            if self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].high_limit >= self.elabelaboration_list[self.spectrum_index].elaboration.regions[fidx].low_limit:
+                response.append('following')
+
+        return response
+
+    def _elaboration_bis(self, parent, M):
+        try:
+            idx = self.regionlist_LB.curselection()[0]
+        except IndexError:
+            idx = -1
+        if idx > -1:
+
+            try:
+                self.elaboration_bis_window.destroy()
+            except AttributeError:
+                pass
+
+            #the re-evaluated region
+            #self.elaborations[self.spectrum_index].regions[idx]
+            LL = self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].low_limit
+            HL = self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].high_limit
+            _FWHM = self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm
+            FWHM_LL = np.sqrt(LL * _FWHM[0] + _FWHM[1]) * 2
+            FWHM_HL = np.sqrt(HL * _FWHM[0] + _FWHM[1]) * 2
+
+            self.elaboration_bis_window = tk.Toplevel(parent)
+            self.elaboration_bis_window.title(f'Region {LL} - {HL}')
+            self.elaboration_bis_window.resizable(False, False)
+
+            self.sub_hintlabel = tk.Label(self.elaboration_bis_window, text='', anchor=tk.W)
+
+            look_for_title = f'Peak elaboration {self.elabelaboration_list[self.spectrum_index].filename()} ({LL}-{HL})'
+
+            rlimits_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='region limits'), relief='solid', bd=2, padx=4, pady=4)
+            rlimits_frame.pack(padx=5, pady=5, anchor=tk.NW)
+
+            self.leftSD = gui_things.Slider(rlimits_frame, default=LL, from_=LL-FWHM_LL, to=LL+FWHM_LL)
+            self.rightSD = gui_things.Slider(rlimits_frame, default=HL, from_=HL-FWHM_HL, to=HL+FWHM_HL)
+            self.leftSD.grid(row=0, column=0, padx=5, pady=5)
+            self.rightSD.grid(row=0, column=1, padx=5, pady=5)
+
+            centroids_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='centroids'), relief='solid', bd=2, padx=4, pady=4)
+            centroids_frame.pack(padx=5, pady=5, anchor=tk.NW)
+
+            tk.Label(centroids_frame, text='remove centroid', anchor=tk.W).grid(row=0, column=0, sticky=tk.W)
+            tk.Label(centroids_frame, text='insert centroid', anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+
+            self._centroids_CB = gui_things.Combobox(centroids_frame, width=10, values=[f'{item:.0f}' for item in self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids], state='readonly')
+            self._centroids_CB.grid(row=0, column=1, padx=5, pady=3)
+
+            values_SB = [f'{numb:.0f}' for numb in np.arange(LL+FWHM_LL, HL-FWHM_HL) if str(int(numb)) not in self._centroids_CB['values']]
+
+            self._newcentrs_SB = gui_things.Spinbox(centroids_frame, values=values_SB, state='readonly', width=10)
+            self._newcentrs_SB.grid(row=1, column=1, padx=5, pady=3)
+
+            logo_remove_centroid = tk.PhotoImage(data=gui_things.PL_none)
+            B_remove_centroid = gui_things.Button(centroids_frame, image=logo_remove_centroid, hint='remove selected centroid', hint_destination=self.sub_hintlabel, command=lambda : self._delete_peak(idx, LL+FWHM_LL, HL-FWHM_HL))
+            B_remove_centroid.grid(row=0, column=2)
+            B_remove_centroid.image = logo_remove_centroid
+
+            logo_insert_centroid = tk.PhotoImage(data=gui_things.PL_aup)
+            B_insert_centroid = gui_things.Button(centroids_frame, image=logo_insert_centroid, hint='insert centroid', hint_destination=self.sub_hintlabel, command=lambda : self._add_peak(idx, LL+FWHM_LL, HL-FWHM_HL))
+            B_insert_centroid.grid(row=1, column=2)
+            B_insert_centroid.image = logo_insert_centroid
+
+            merger_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='merge/split region'), relief='solid', bd=2, padx=4, pady=4)
+            merger_frame.pack(padx=5, pady=5, anchor=tk.NW)
+
+            tk.Label(merger_frame, text='merge with', anchor=tk.W).grid(row=0, column=0, padx=5, pady=3, sticky=tk.W)
+
+            self._mergerregion_CB = gui_things.Combobox(merger_frame, width=10, values=self._look_if_adjacent_regions_qualify(idx), state='readonly')
+            self._mergerregion_CB.grid(row=0, column=1, padx=5, pady=3)
+            self._mergerregion_CB.set('')
+
+            logo_merge_regions = tk.PhotoImage(data=gui_things.PL_convergence)
+            B_merge_regions = gui_things.Button(merger_frame, image=logo_merge_regions, hint='merge regions', hint_destination=self.sub_hintlabel, command=lambda : self._do_merge_regions(idx))
+            B_merge_regions.grid(row=0, column=2)
+            B_merge_regions.image = logo_merge_regions
+
+            tk.Label(merger_frame, text='split at', anchor=tk.W).grid(row=1, column=0, padx=5, pady=3, sticky=tk.W)
+
+            self.splitSD = gui_things.Slider(merger_frame, default=int((HL-FWHM_HL + LL+FWHM_LL)/2), from_=LL+FWHM_LL, to=HL-FWHM_HL)
+
+            self.splitSD.grid(row=1, column=1, padx=5)
+
+            logo_split_region = tk.PhotoImage(data=gui_things.PL_ggear)
+            B_split_region = gui_things.Button(merger_frame, image=logo_split_region, hint='split current region in two regions', hint_destination=self.sub_hintlabel, command=lambda : self._do_split_region(idx))
+            B_split_region.grid(row=1, column=2)
+            B_split_region.image = logo_split_region
+
+            fits_frame = tk.LabelFrame(self.elaboration_bis_window, labelwidget=tk.Label(self.elaboration_bis_window, text='fits'), relief='solid', bd=2, padx=4, pady=4)
+            fits_frame.pack(padx=5, pady=5, anchor=tk.NW)
+
+            self.options = {'left_skew':tk.BooleanVar(self.elaboration_bis_window), 'right_skew':tk.BooleanVar(self.elaboration_bis_window), 'slope':tk.BooleanVar(self.elaboration_bis_window), 'step':tk.BooleanVar(self.elaboration_bis_window)}
+
+            pkrgs = self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].peak_kwargs
+            self.options['left_skew'].set(pkrgs['left_skew'])
+            self.options['right_skew'].set(pkrgs['right_skew'])
+            self.options['slope'].set(pkrgs['slope'])
+            self.options['step'].set(pkrgs['step'])
+
+            tk.Label(fits_frame, text='peak').grid(row=0, column=0, sticky=tk.NW)
+            LS_ChB = tk.Checkbutton(fits_frame, onvalue=1, offvalue=0, variable=self.options['left_skew'], text='left skew')
+            LS_ChB.grid(row=0, column=1, sticky=tk.W)
+            RS_ChB = tk.Checkbutton(fits_frame, onvalue=1, offvalue=0, variable=self.options['right_skew'], text='right skew')
+            RS_ChB.grid(row=0, column=2, sticky=tk.W)
+            tk.Label(fits_frame, text='background').grid(row=1, column=0, sticky=tk.NW)
+            SP_ChB = tk.Checkbutton(fits_frame, onvalue=1, offvalue=0, variable=self.options['slope'], text='slope')
+            SP_ChB.grid(row=1, column=1, sticky=tk.W)
+            ST_ChB = tk.Checkbutton(fits_frame, onvalue=1, offvalue=0, variable=self.options['step'], text='step')
+            ST_ChB.grid(row=1, column=2, sticky=tk.W)
+
+            logo_perform_actione = tk.PhotoImage(data=gui_things.PL_check)
+            B_perform_actione = gui_things.Button(self.elaboration_bis_window, image=logo_perform_actione, hint='re-fit region with current settings', hint_destination=self.sub_hintlabel, command=lambda : self._reiteration(idx, look_for_title))
+            B_perform_actione.pack(pady=5)
+            B_perform_actione.image = logo_perform_actione
+
+            self.sub_hintlabel.pack(anchor=tk.NW)
+
+        else:
+            self.hintlabel.configure(text='select one region to inspect')
+
+    def _add_region(self, parent, max_windows_open_at_a_time=10):
+
+        if self.calibration_selector_CB.get() != '' or self.use_fictitional_calibration_V.get():
+
+            #very important
+            if self.elabelaboration_list[self.spectrum_index].elaboration is None:
+                if self.calibration_selector_CB.get() != '':
+                    det_characterization = naaobject._call_database(self.calibration_selector_CB.get(), 'characterizations', 'dcr')
+                else:
+                    det_characterization = naaobject.MakeshiftDetectorCharacterization(**self._fictitional_calibration)
+                self.elabelaboration_list[self.spectrum_index].elaboration = pk_elab.Elaboration(self.elabelaboration_list[self.spectrum_index], det_characterization, K=3.5)
+
+            self.subwindows = self.sweep()
+            titles = [self._get_title(window) for window in self.subwindows]
+
+            #open_subwindow
+            title = f'Add region'
+
+            if title in titles:
+                self.subwindows[titles.index(title)].deiconify()
+                self.subwindows[titles.index(title)].focus()
+            else:
+                addregionTL = tk.Toplevel(parent)
+                addregionTL.title(title)
+                addregionTL.resizable(False, False)
+
+                self.subwindows.append(addregionTL)
+                if len(self.subwindows) > max_windows_open_at_a_time:
+                    self.subwindows[0].destroy()
+                    self.subwindows[0] = None
+                    self.subwindows = self.sweep()
+
+                addregionTL.variableRB = tk.IntVar(addregionTL)
+                addregionTL.variableRB.set(0)
+
+                addregionTL.hintlabel = tk.Label(addregionTL, text='', anchor=tk.W)
+
+                topframe = tk.Frame(addregionTL)
+
+                mode1_frame = tk.LabelFrame(topframe, labelwidget=tk.Label(topframe, text='mode 1'), relief='solid', bd=2, padx=4, pady=4)
+                mode1_frame.pack(side=tk.LEFT, padx=5, pady=5, anchor=tk.NW)
+
+                RB_mode1 = tk.Radiobutton(mode1_frame, text='channel range', variable=addregionTL.variableRB, value=0)
+                RB_mode1.grid(row=0, column=0, columnspan=2, pady=5)
+                tk.Label(mode1_frame, text='channel start', anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+                tk.Label(mode1_frame, text='channel end', anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+                addregionTL._channel_start_VB = tk.StringVar(addregionTL)
+                addregionTL._channel_start_VB.set('')
+
+                addregionTL._channel_end_VB = tk.StringVar(addregionTL)
+                addregionTL._channel_end_VB.set('')
+
+                _channel_startE = gui_things.Entry(mode1_frame, textvariable=addregionTL._channel_start_VB, width=7)
+                _channel_startE.grid(row=1, column=1, sticky=tk.E, padx=5)
+
+                _channel_endE = gui_things.Entry(mode1_frame, textvariable=addregionTL._channel_end_VB, width=7)
+                _channel_endE.grid(row=2, column=1, sticky=tk.E, padx=5)
+
+                mode2_frame = tk.LabelFrame(topframe, labelwidget=tk.Label(topframe, text='mode 2'), relief='solid', bd=2, padx=4, pady=4)
+                mode2_frame.pack(side=tk.LEFT, padx=5, pady=5, anchor=tk.NW)
+
+                RB_mode2 = tk.Radiobutton(mode2_frame, text='channel centroid', variable=addregionTL.variableRB, value=1)
+                RB_mode2.grid(row=0, column=0, columnspan=2, pady=5)
+                tk.Label(mode2_frame, text='centroid / 1', anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+                tk.Label(mode2_frame, text='width / 1', anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+                addregionTL._channel_centroid_VB = tk.StringVar(addregionTL)
+                addregionTL._channel_centroid_VB.set('')
+
+                addregionTL._channel_width_VB = tk.StringVar(addregionTL)
+                addregionTL._channel_width_VB.set('')
+
+                _channel_centroidE = gui_things.Entry(mode2_frame, textvariable=addregionTL._channel_centroid_VB, width=7)
+                _channel_centroidE.grid(row=1, column=1, sticky=tk.E, padx=5)
+
+                _channel_widthE = gui_things.Entry(mode2_frame, textvariable=addregionTL._channel_width_VB, width=7)
+                _channel_widthE.grid(row=2, column=1, sticky=tk.E, padx=5)
+
+                mode3_frame = tk.LabelFrame(topframe, labelwidget=tk.Label(topframe, text='mode 3'), relief='solid', bd=2, padx=4, pady=4)
+                mode3_frame.pack(side=tk.LEFT, padx=5, pady=5, anchor=tk.NW)
+
+                RB_mode3 = tk.Radiobutton(mode3_frame, text='energy centroid', variable=addregionTL.variableRB, value=2)
+                RB_mode3.grid(row=0, column=0, columnspan=2, pady=5)
+                tk.Label(mode3_frame, text='centroid / keV', anchor=tk.W).grid(row=1, column=0, sticky=tk.W)
+                tk.Label(mode3_frame, text='width / keV', anchor=tk.W).grid(row=2, column=0, sticky=tk.W)
+
+                addregionTL._energy_centroid_VB = tk.StringVar(addregionTL)
+                addregionTL._energy_centroid_VB.set('')
+
+                addregionTL._energy_width_VB = tk.StringVar(addregionTL)
+                addregionTL._energy_width_VB.set('')
+
+                _energy_centroidE = gui_things.Entry(mode3_frame, textvariable=addregionTL._energy_centroid_VB, width=7)
+                _energy_centroidE.grid(row=1, column=1, sticky=tk.E, padx=5)
+
+                _energy_widthE = gui_things.Entry(mode3_frame, textvariable=addregionTL._energy_width_VB, width=7)
+                _energy_widthE.grid(row=2, column=1, sticky=tk.E, padx=5)
+
+                topframe.pack(anchor=tk.NW)
+
+                logo_confirm_BT = tk.PhotoImage(data=gui_things.PL_confirm_bullseye)
+                confirm_BT = gui_things.Button(addregionTL, image=logo_confirm_BT, hint='add new region', hint_destination=addregionTL.hintlabel, command=lambda : self._add_new_region_CM(addregionTL))
+                confirm_BT.pack()
+                confirm_BT.image = logo_confirm_BT
+
+                addregionTL.hintlabel.pack(anchor=tk.NW)
+
+        else:
+            self.hintlabel.configure(text='detector characterization required')
+
+    def _add_new_region_CM(self, window):
+        limits = None
+        _HOWLARGE = 18
+
+        elabfw = self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm
+        maxlen = len(self.elabelaboration_list[self.spectrum_index].elaboration.spectrum_profile)
+        funchan = self.elabelaboration_list[self.spectrum_index].elaboration._get_channel
+
+        if window.variableRB.get() == 0:
+            try:
+                _cs = int(window._channel_start_VB.get())
+                _ce = int(window._channel_end_VB.get())
+            except ValueError:
+                messg = 'invalid values for region'
+            else:
+                FWHM = np.sqrt((_ce + _cs)/2 * elabfw[0] + elabfw[1])
+                if _cs >= 0 and _ce <= maxlen and 10 < _ce - _cs < _HOWLARGE*FWHM:
+                    limits = (_cs, _ce)
+                elif _ce - _cs < 0:
+                    messg = 'higher limit lower than lower limit'
+                elif 10 > _ce - _cs:
+                    messg = 'selected region too short'
+                elif _ce - _cs > _HOWLARGE*FWHM:
+                    messg = 'selected region too large'
+
+        elif window.variableRB.get() == 1:
+            try:
+                _cnt = int(window._channel_centroid_VB.get())
+                _wdt = int(window._channel_width_VB.get())
+            except ValueError:
+                messg = 'invalid values for region'
+            else:
+                _cs = _cnt - int(_wdt/2)
+                _ce = _cnt + int(_wdt/2) + 1
+                FWHM = np.sqrt((_ce + _cs)/2 * elabfw[0] + elabfw[1])
+                if _cs >= 0 and _ce <= maxlen and 10 < _ce - _cs < _HOWLARGE*FWHM:
+                    limits = (_cs, _ce)
+                elif _ce - _cs < 0:
+                    messg = 'higher limit lower than lower limit'
+                elif 10 > _ce - _cs:
+                    messg = 'selected region too short'
+                elif _ce - _cs > _HOWLARGE*FWHM:
+                    messg = 'selected region too large'
+
+        else:
+            try:
+                _cntE = float(window._energy_centroid_VB.get())
+                _wdtE = float(window._energy_width_VB.get())
+            except ValueError:
+                messg = 'invalid values for region'
+            else:
+                aria = int(funchan(_wdtE)/2)
+                _cs = int(funchan(_cntE)) - aria
+                _ce = int(funchan(_cntE)) + aria + 1 
+                FWHM = np.sqrt((_ce + _cs)/2 * elabfw[0] + elabfw[1])
+                if _cs >= 0 and _ce <= maxlen and 10 < _ce - _cs < _HOWLARGE*FWHM:
+                    limits = (_cs, _ce)
+                elif _ce - _cs < 0:
+                    messg = 'higher limit lower than lower limit'
+                elif 10 > _ce - _cs:
+                    messg = 'selected region too short'
+                elif _ce - _cs > _HOWLARGE*FWHM:
+                    messg = 'selected region too large'
+
+        if limits is not None:
+            #inter with existing regions
+            _listc = sorted([item.low_limit for item in self.elabelaboration_list[self.spectrum_index].elaboration.regions] + [limits[0]])
+            _idx = _listc.index(limits[0])            
+            
+            outcome = False
+            messg = 'region successfully added'
+            try:
+                regl, regh = self.elabelaboration_list[self.spectrum_index].elaboration.regions[_idx].low_limit, self.elabelaboration_list[self.spectrum_index].elaboration.regions[_idx].high_limit
+
+                if limits[1] < regl:
+                    outcome =True
+                else:
+                    if (np.min((regh, limits[1])) - regl) / (regh - regl) < 0.50:
+                        outcome = True
+                    else:
+                        messg = f'excessive overlapping with existing region ({regl} - {regh})'
+            except (AttributeError, IndexError):
+                outcome = True
+
+            if outcome:
+                #automatically seek for centroids
+                centrs = []
+
+                self.elabelaboration_list[self.spectrum_index].elaboration.regions.insert(_idx, pk_elab.Region(limits[0], limits[1], centrs))
+
+                self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+                self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+                self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+                self.regionlist_LB.listbox.activate(_idx)
+                self.regionlist_LB.listbox.yview(_idx)
+
+        window.hintlabel.configure(text=messg)
+
+
+    def _do_split_region(self, idx):
+        midpoint = self.splitSD.get()
+        self.elaboration_bis_window.destroy()
+        reg0 = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx)
+        reg1cs = [centr for centr in reg0.centroids if centr <= midpoint]
+        reg2cs = [centr for centr in reg0.centroids if centr > midpoint]
+
+        #reg1
+        self.elabelaboration_list[self.spectrum_index].elaboration.regions.insert(idx, pk_elab.Region(reg0.low_limit, midpoint+1, reg1cs))
+
+        #reg2
+        self.elabelaboration_list[self.spectrum_index].elaboration.regions.insert(idx+1, pk_elab.Region(midpoint, reg0.high_limit, reg2cs))
+
+        opts = {key:value.get() for key, value in self.options.items()}
+
+        self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].elaboration_fit(self.elabelaboration_list[self.spectrum_index].counts, self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm, peak_opts=self.peak_fit, **opts)
+
+        self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx+1].elaboration_fit(self.elabelaboration_list[self.spectrum_index].counts, self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm, peak_opts=self.peak_fit, **opts)
+
+        self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+        self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+        self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+        self.regionlist_LB.listbox.activate(idx)
+        self.regionlist_LB.listbox.yview(idx)
+
+    def _do_merge_regions(self, idx):
+
+        if self._mergerregion_CB.get() == 'previous':
+            self.elaboration_bis_window.destroy()
+            reg1 = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx-1)
+            reg2 = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx-1)
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions.insert(idx-1, pk_elab.Region(reg1.low_limit, reg2.high_limit, reg1.centroids + reg2.centroids))
+
+            opts = {key:value.get() for key, value in self.options.items()}
+
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx-1].elaboration_fit(self.elabelaboration_list[self.spectrum_index].counts, self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm, peak_opts=self.peak_fit, **opts)
+
+            self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+            self.regionlist_LB.listbox.activate(idx-1)
+            self.regionlist_LB.listbox.yview(idx-1)
+
+        elif self._mergerregion_CB.get() == 'following':
+            self.elaboration_bis_window.destroy()
+
+            reg1 = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx)
+            reg2 = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx)
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions.insert(idx, pk_elab.Region(reg1.low_limit, reg2.high_limit, reg1.centroids + reg2.centroids))
+
+            opts = {key:value.get() for key, value in self.options.items()}
+
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx-1].elaboration_fit(self.elabelaboration_list[self.spectrum_index].counts, self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm, peak_opts=self.peak_fit, **opts)
+
+            self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+            self.regionlist_LB.listbox.activate(idx)
+            self.regionlist_LB.listbox.yview(idx)
+
+        else:
+            print('NO WAY')
+
+    def _delete_peak(self, idx, LL, HL):
+        _idx = self._centroids_CB.current()
+        self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids.pop(_idx)
+
+        self._centroids_CB['values'] = [f'{item:.0f}' for item in self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids]
+        self._centroids_CB.set('')
+
+        values_SB = [f'{numb:.0f}' for numb in np.arange(LL, HL) if str(int(numb)) not in self._centroids_CB['values']]
+        self._newcentrs_SB['values'] = values_SB
+
+    def _add_peak(self, idx, LL, HL):
+        if len(self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids) < 9:
+            newcent = float(int(self._newcentrs_SB.get()))
+            if f'{newcent}' not in self._centroids_CB['values']:
+                self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids.append(newcent)
+                self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids.sort()
+                self._centroids_CB['values'] = [f'{item:.0f}' for item in self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids]
+                self._centroids_CB.set('')
+
+                values_SB = [f'{numb:.0f}' for numb in np.arange(LL, HL) if str(int(numb)) not in self._centroids_CB['values']]
+
+                self._newcentrs_SB['values'] = values_SB
+        else:
+            print('too many centroids!')
+
+    def _reiteration(self, idx, look_for_title):
+        #checks
+        LL = self.leftSD.get()
+        HL = self.rightSD.get()
+
+        try:
+            if LL < self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids[0] and HL > self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].centroids[-1]:
+                proceed_cond = True
+            else:
+                proceed_cond = False
+        except IndexError:
+            proceed_cond = True
+
+        if proceed_cond:
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].low_limit = LL
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].high_limit = HL
+
+            titles = [self._get_title(window) for window in self.subwindows]
+            if look_for_title in titles:
+                self.subwindows[titles.index(look_for_title)].destroy()
+                self.subwindows[titles.index(look_for_title)] = None
+                self.subwindows = self.sweep()
+
+            opts = {key:value.get() for key, value in self.options.items()}
+
+            self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].elaboration_fit(self.elabelaboration_list[self.spectrum_index].counts, self.elabelaboration_list[self.spectrum_index].elaboration.cal_fwhm, peak_opts=self.peak_fit, **opts)
+
+            self.elaboration_bis_window.destroy()
+
+            self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+            self.regionlist_LB.listbox.activate(idx)
+            self.regionlist_LB.listbox.yview(idx)
+        else:
+            self.hintlabel.configure(text='some error occurred')
+
+    def _save_peaklist(self, LBlist):
+
+        def _check_item(item):
+            if len(item.original_peak_list) > 0 and item.elaborated_peak_list is not None:
+                return True
+            elif len(item.original_peak_list) > 0 or item.elaborated_peak_list is not None:
+                return False
+            return None
+        
+        if self.elabelaboration_list[self.spectrum_index].elaboration is not None:
+            plist = self.elabelaboration_list[self.spectrum_index].elaboration._get_peaklist()
+        else:
+            plist = []
+
+        if len(plist) > 0:
+            self.elabelaboration_list[self.spectrum_index].elaborated_peak_list = [row for row in plist]
+
+            self.elabelaboration_list[self.spectrum_index].elaboration_date = datetime.datetime.today()
+
+            self.elab_date.configure(text=f'{self.elabelaboration_list[self.spectrum_index].readable_EPLdatetime()}')
+
+            #save spectrum on disc
+            self.elabelaboration_list[self.spectrum_index]._save()
+
+            condition = [_check_item(item) for item in self.elabelaboration_list]
+
+            LBlist._triplecolored_update(condition)
+            self.hintlabel.configure(text='elaboration correctly saved on disc')
+        
+        else:
+            self.hintlabel.configure(text='at least one fitted region is required')
+
+    def _get_title(self, window):
+        try:
+            return window.title()
+        except Exception:
+            return None
+
+    def sweep(self):
+        return [window for window in self.subwindows if window is not None]
+
+    def _peek_fitpeak(self, parent, max_windows_open_at_a_time=10):
+        try:
+            idx = self.regionlist_LB.curselection()[0]
+        except IndexError:
+            idx = -1
+        if idx > -1:
+            if self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].fit is not None:
+                self.subwindows = self.sweep()
+                titles = [self._get_title(window) for window in self.subwindows]
+
+                #open_subwindow
+                fnm = self.elabelaboration_list[self.spectrum_index].filename()
+                regg = self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx]
+                title = f'Peak elaboration {fnm} ({regg.low_limit}-{regg.high_limit})'
+
+                if title in titles:
+                    self.subwindows[titles.index(title)].deiconify()
+                    self.subwindows[titles.index(title)].focus()
+                else:
+                    fitpeakTL = tk.Toplevel(parent)
+                    fitpeakTL.title(title)
+
+                    self.subwindows.append(fitpeakTL)
+                    if len(self.subwindows) > max_windows_open_at_a_time:
+                        self.subwindows[0].destroy()
+                        self.subwindows[0] = None
+                        self.subwindows = self.sweep()
+                    
+                    ElaborationWindow.FitOverviewWindow(self, fitpeakTL, idx)
+
+    def _delete_selected_region(self):
+        try:
+            idx = self.regionlist_LB.curselection()[0]
+        except IndexError:
+            idx = -1
+        if idx > -1:
+
+            try:
+                self.elaboration_bis_window.destroy()
+            except AttributeError:
+                pass
+
+            if self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx].fit is None:
+
+                rreg = self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop(idx)
+
+                self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+                self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+                self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+
+                self.hintlabel.configure(text=f'region {rreg.low_limit} - {rreg.high_limit} removed')
+
+                if 0 <= idx < len(self.elabelaboration_list[self.spectrum_index].elaboration.regions):
+                    self.regionlist_LB.listbox.activate(idx)
+                    self.regionlist_LB.listbox.yview(idx)
+                elif len(self.elabelaboration_list[self.spectrum_index].elaboration.regions) > 0:
+                    self.regionlist_LB.listbox.activate(len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)-1)
+                    self.regionlist_LB.listbox.yview(len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)-1)
+
+    def _store_region_info(self):
+        elab = self.elabelaboration_list[self.spectrum_index].elaboration
+        if elab is not None:
+            if len(elab.regions) > 0:
+                pk_elab.PreRegions(elab.spectrum_name, elab.calname, elab.regions)
+                self.hintlabel.configure(text='region information saved')
+            else:
+                self.hintlabel.configure(text='no regions to save')
+        else:
+            self.hintlabel.configure(text='no regions to save')
+
+    def _delete_unfittable_regions(self):
+        if self.elabelaboration_list[self.spectrum_index].elaboration is not None:
+
+            try:
+                self.elaboration_bis_window.destroy()
+            except AttributeError:
+                pass
+
+            idxs = [reg for reg in self.elabelaboration_list[self.spectrum_index].elaboration.regions if reg.fit is None]
+            for item in idxs:
+                self.elabelaboration_list[self.spectrum_index].elaboration.regions.remove(item)
+
+            self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+
+    def _elaborate_regions(self):
+        if self.elabelaboration_list[self.spectrum_index].elaboration is not None:
+            current_elaboration = self.elabelaboration_list[self.spectrum_index].elaboration
+            _spectrump = self.elabelaboration_list[self.spectrum_index].counts
+            cal_fwhm = current_elaboration.cal_fwhm
+
+            self.progressbar['value'] = 0
+            self.progressbar['maximum'] = len(current_elaboration.regions)
+            self.progressbar.update()
+
+            for reg in self.elabelaboration_list[self.spectrum_index].elaboration.regions:
+                if reg.fit is None:
+                    reg.elaboration_fit(_spectrump, cal_fwhm, peak_opts=self.peak_fit)
+
+                self.progressbar['value'] += 1
+                self.progressbar.update()
+
+            self.progressbar['value'] = 1
+            self.progressbar['maximum'] = 1
+            self.progressbar.update()
+
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in current_elaboration.regions])
+
+    def _center_region_plot(self):
+        try:
+            idx = self.regionlist_LB.curselection()[0]
+        except IndexError:
+            idx = -1
+        if idx > -1:
+            reg = self.elabelaboration_list[self.spectrum_index].elaboration.regions[idx]
+            _space = self.elabelaboration_list[self.spectrum_index].counts[reg.low_limit:reg.high_limit+1]
+            _min, _max = np.min(_space)*0.95, np.max(_space)*1.10 + 2
+
+            if _min < 1:
+                _min = 1
+
+            self.ax.set_xlim(reg.low_limit, reg.high_limit)
+            self.ax.set_ylim(_min, _max)
+            self.figure.tight_layout()
+            self.canvas.draw()
+
+    def _recall_preset(self, filename):
+        """Return element list from selected preset"""
+        if filename == '':
+            return ()
+        element_list = naaobject._call_database(filename, 'presets', 'pst')
+        return element_list
+
+    def define_region_work(self, M):
+        self.progressbar['value'] = 0
+        self.progressbar['maximum'] = 2
+        self.progressbar.update()
+
+        current_elaboration = self.elabelaboration_list[self.spectrum_index].elaboration
+
+        #checks
+        if self.calibration_selector_CB.get() != '' or self.use_fictitional_calibration_V.get():
+            if current_elaboration is not None and len(current_elaboration.regions) > 0:
+                self.hintlabel.configure(text='regions are already defined, delete the current elaboration and start a new one')
+            else:
+                if self.calibration_selector_CB.get() != '':
+                    det_characterization = naaobject._call_database(self.calibration_selector_CB.get(), 'characterizations', 'dcr')
+                else:
+                    det_characterization = naaobject.MakeshiftDetectorCharacterization(**self._fictitional_calibration)
+                self.elabelaboration_list[self.spectrum_index].elaboration = pk_elab.Elaboration(self.elabelaboration_list[self.spectrum_index], det_characterization, **self.region_options)
+
+                preset = self._recall_preset(self.preset_selector_CB.get())
+                
+                if preset is not None and preset != ():
+
+                    database_info = ('database', ('k0data', 'k0d'))
+                    k0_database = naaobject._call_database(M.settings.get(database_info[0]), *database_info[1])
+
+                    subdatabase_filter = k0_database['target'].isin(preset)
+                    subdatabase = k0_database[subdatabase_filter]
+
+                    energies = np.sort(subdatabase['E'])
+                else:
+                    energies = None
+
+                self.progressbar['value'] += 1
+                self.progressbar.update()
+
+                current_elaboration = self.elabelaboration_list[self.spectrum_index].elaboration
+                current_elaboration._autoregion_search(energies, **self.peak_search)
+
+                self.progressbar['value'] += 1
+                self.progressbar.update()
+
+                self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in current_elaboration.regions])
+                self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in current_elaboration.regions])
+                self.fitting_label.configure(text=f'fitting regions ({len(current_elaboration.regions)})')
+
+        else:
+            self.hintlabel.configure(text='no detector calibration selected')
+
+        self.progressbar['value'] = 1
+        self.progressbar['maximum'] = 1
+        self.progressbar.update()
+
+
+    def _change_the_settings(self):
+        try:
+            htimes = len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)
+            for nn in range(htimes):
+                self.elabelaboration_list[self.spectrum_index].elaboration.regions.pop()
+            self.regionlist_LB._update(data=[f'{R0.low_limit} - {R0.high_limit}' for R0 in self.elabelaboration_list[self.spectrum_index].elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(self.elabelaboration_list[self.spectrum_index].elaboration.regions)})')
+        except AttributeError:
+            pass
+
+        _lw = len(self.subwindows)
+        for _nn in range(_lw):
+            self.subwindows[_nn].destroy()
+            self.subwindows[_nn] = None
+        self.subwindows = self.sweep()
+
+        try:
+            self.elaboration_bis_window.destroy()
+        except AttributeError:
+            pass
+
+    def _update_plot(self):
+        center = self.slider.variable.get()
+        limits = [int(center - self.slider.drg), int(center + self.slider.drg)]
+        if center == self.slider.from_ or center == self.slider.to:
+            limits[0] = self.slider.from_
+            limits[1] = self.slider.to
+        elif limits[0] < self.slider.from_:
+            limits[0] = self.slider.from_
+        elif limits[1] > self.slider.to:
+            limits[1] = self.slider.to
+        
+        _space = self.elabelaboration_list[self.spectrum_index].counts[limits[0]:limits[1]+1]
+        _min, _max = np.min(_space)*0.95, np.max(_space)*1.10 + 2
+        if _min < 1:
+            _min = 1
+
+        self.ax.set_xlim(limits[0], limits[1])
+        self.ax.set_ylim(_min, _max)
+        self.figure.tight_layout()
+        self.canvas.draw()
+
+    def _change_selection(self):
+        try:
+            self.elaboration_bis_window.destroy()
+        except AttributeError:
+            pass
+
+        self.spectrum_index = self.spectrum_selector_CB.current()
+        _spectrum = self.elabelaboration_list[self.spectrum_index]
+
+        self.acq_date.configure(text=f'{_spectrum.readable_datetime()}')
+        self.realtime.configure(text=f'{_spectrum.real_time:.1f}')
+        self.livetime.configure(text=f'{_spectrum.live_time:.1f}')
+        self.nchannels.configure(text=f'{_spectrum.number_of_channels()}')
+        self.totcounts.configure(text=f'{np.sum(_spectrum.counts)}')
+        self.deadtime.configure(text=f'{(1-_spectrum.live_time / _spectrum.real_time)*100:.2f} %')
+        self.elab_date.configure(text=f'{_spectrum.readable_EPLdatetime()}')
+
+        plot_opts = {'marker':'o', 'markersize':1.5, 'markeredgewidth':0, 'linewidth':0.5, 'alpha':0.55, 'color':'#011f4b'}
+
+        xx = np.arange(0, _spectrum.number_of_channels())
+
+        self.slider.set_values(np.linspace(xx[0], xx[-1], 200).astype(int))
+        self.slider.drg = int(_spectrum.number_of_channels() / 200)
+
+        self.ax.clear()
+        _max = np.max(_spectrum.counts)*1.10 + 2
+
+        self.ax.plot(xx, _spectrum.counts, **plot_opts)
+        self.ax.set_xlim(xx[0], xx[-1])
+        self.ax.set_ylim(1, _max)
+        self.ax.set_xlabel('channel / 1')
+        self.ax.set_yscale('log')
+        self.figure.tight_layout()
+        self.canvas.draw()
+
+        current_elaboration = self.elabelaboration_list[self.spectrum_index].elaboration
+
+        if current_elaboration is not None and current_elaboration.calname in self.calibration_selector_CB.Combobox['values']:
+            self.calibration_selector_CB.Combobox.set(current_elaboration.calname)
+            if self.calibration_selector_CB.state == 'readonly':
+                self.calibration_selector_CB._u_lock()
+        else:
+            self.elabelaboration_list[self.spectrum_index].elaboration = None
+            self.calibration_selector_CB.Combobox.set('')
+            if self.calibration_selector_CB.state == 'disabled':
+                self.calibration_selector_CB._u_lock()
+
+        if current_elaboration is not None:
+            datas = [f'{R0.low_limit} - {R0.high_limit}' for R0 in current_elaboration.regions]
+        else:
+            datas = []
+        self.regionlist_LB._update(data=datas)
+        if current_elaboration is not None:
+            self.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in current_elaboration.regions])
+            self.fitting_label.configure(text=f'fitting regions ({len(current_elaboration.regions)})')
+        else:
+            self.fitting_label.configure(text='fitting regions (0)')
+
+
+    class FitOverviewWindow:
+        """Subclass to look in the detail at the performed fits"""
+        def __init__(self, _elaborationwindow, parent, idx):
+
+            parent.resizable(False, False)
+
+            self.overall_window = None
+            self.hintlabel = tk.Label(parent, text='', anchor=tk.W)
+
+            showfit = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text='fit'), relief='solid', bd=2, padx=4, pady=4)
+            showparams = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text='parameters'), relief='solid', bd=2, padx=4, pady=4)
+
+            bar_opts = {'width':1.0, 'align':'center', 'alpha':0.55, 'facecolor':'#011f4b', 'linewidth':0}
+            plot_opts = {'linestyle':'-', 'linewidth':1.5, 'color':'r'}
+            singleplots_opts = {'linestyle':'--', 'linewidth':1.0, 'color':'k'}
+            bkg_opts = {'linestyle':'-', 'linewidth':2, 'color':'g'}
+            res_opts = {'marker':'s', 'markersize':3, 'markerfacecolor':'w', 'markeredgewidth':0.5, 'markeredgecolor':'k', 'linestyle':'--', 'linewidth':0.75, 'color':'b'}
+            hlines_opts = {'linewidth':1.5, 'alpha':0.55, 'color':'#011f4b', 'linestyle':'-'}
+            hlines2_opts = {'linewidth':1.0, 'alpha':0.55, 'color':'k', 'linestyle':'--'}
+            
+            self.figure = Figure(figsize=(8, 4))
+            self.figure.patch.set_alpha(0.0)
+            self.ax, self.resax = self.figure.subplots(2,1, sharex=True, height_ratios=(2,1))
+            Figur = tk.Frame(showfit)
+            Figur.grid(row=0, column=0, sticky=tk.NSEW)
+            self.canvas = FigureCanvasTkAgg(self.figure, master=Figur)
+            self.figure.tight_layout()
+            self.canvas.draw()
+            self.canvas.get_tk_widget().configure(background=parent.cget('bg'))
+            self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+            region = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]
+            profile = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].counts
+            elab = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration
+
+            xx = np.arange(region.low_limit, region.high_limit+1)
+            self.ax.bar(xx, profile[xx], **bar_opts)
+
+            xfit = np.linspace(region.low_limit, region.high_limit+1, num=150, endpoint=True)
+            self._fitline = self.ax.plot(xfit, region.fit._draw_total(xfit), **plot_opts)[0]
+            partials = region.fit._draw_partials(xfit)
+            self._fitsinglelines = []
+            for item in partials:
+                self._fitsinglelines.append(self.ax.plot(xfit, item, **singleplots_opts)[0])
+            self._bkgline = self.ax.plot(xfit, region.fit._draw_background(xfit), **bkg_opts)[0]
+
+            self._resline = self.resax.plot(xx, region.fit.fvec, **res_opts)[0]
+
+            enax = self.ax.secondary_xaxis('top', functions=(elab._get_energy, elab._get_channel))
+            enax.set_xlabel(r'$E$ / keV')
+
+            self.ax.set_xlim(region.low_limit, region.high_limit)
+            self.resax.set_ylim(-3, 3)
+            self.resax.set_xlabel(r'$channel$ / 1')
+            self.resax.axhline(0, 0, 1, **hlines_opts)
+            self.resax.axhline(2, 0, 1, **hlines2_opts)
+            self.resax.axhline(-2, 0, 1, **hlines2_opts)
+
+            self.ax.set_yscale('log')
+            self.figure.tight_layout()
+            self.canvas.draw()
+
+            self._selectedfit_CB = gui_things.Combobox(showparams, width=30, values=region._fits, state='readonly')
+            self._selectedfit_CB.set(region.fit)
+
+            self._selectedfit_CB.pack(anchor=tk.N)
+
+            tk.Frame(showparams).pack(fill=tk.X, pady=5, anchor=tk.NW)
+
+            self.CHISQ = tk.Label(showparams, text=f'chi-square: {region.fit.chisq:.3f}', anchor=tk.W)
+            self.CHISQ.pack(anchor=tk.NW)
+            self.SR1 = tk.Label(showparams, text=f'sum of residuals: {region.fit.ssum:.3f}', anchor=tk.W)
+            self.SR1.pack(anchor=tk.NW)
+            self.SSR2 = tk.Label(showparams, text=f'sum of squared residuals: {region.fit.sqsum:.3f}', anchor=tk.W)
+            self.SSR2.pack(anchor=tk.NW)
+
+            ttk.Separator(showparams, orient="horizontal").pack(fill=tk.X, expand=False, pady=5, anchor=tk.NW)
+
+            bottons_lines = tk.Frame(showparams)
+
+            logo_ignore_region = tk.PhotoImage(data=gui_things.PL_none)
+            B_ignore_region = gui_things.Button(bottons_lines, image=logo_ignore_region, hint='delete fitting information', hint_destination=self.hintlabel, command=lambda : self.do_things(_elaborationwindow, idx, parent))
+            B_ignore_region.pack(side=tk.LEFT)
+            B_ignore_region.image = logo_ignore_region
+
+            logo_save_parameters = tk.PhotoImage(data=gui_things.PL_frame_peak)
+            B_save_parameters = gui_things.Button(bottons_lines, image=logo_save_parameters, hint='fitting parameters information', hint_destination=self.hintlabel, command=lambda : self.devoile_parameters(_elaborationwindow, idx, parent))
+            B_save_parameters.pack(side=tk.LEFT)
+            B_save_parameters.image = logo_save_parameters
+
+            logo_overallview = tk.PhotoImage(data=gui_things.PL_bars)
+            B_overallview = gui_things.Button(bottons_lines, image=logo_overallview, hint='overview of all fits', hint_destination=self.hintlabel, command=lambda : self._overallview(region, elab, profile[xx], parent))
+            B_overallview.pack(side=tk.LEFT)
+            B_overallview.image = logo_overallview
+
+            bottons_lines.pack(anchor=tk.NW)
+
+            ttk.Separator(showparams, orient="horizontal").pack(fill=tk.X, expand=False, pady=5, anchor=tk.NW)
+
+            peakframe = tk.Frame(showparams)
+
+            tk.Label(peakframe, text='peaks').grid(row=0, column=0, columnspan=5, sticky=tk.EW)
+            tk.Label(peakframe, text='#', width=3).grid(row=1, column=0, sticky=tk.W)
+            tk.Label(peakframe, text='ch', width=8).grid(row=1, column=1, sticky=tk.W)
+            tk.Label(peakframe, text='E / keV', width=8).grid(row=1, column=2, sticky=tk.W)
+            tk.Label(peakframe, text='area / 1', width=8).grid(row=1, column=3, sticky=tk.W)
+            tk.Label(peakframe, text='unc / %', width=8).grid(row=1, column=4, sticky=tk.W)
+
+            self._structure = [[tk.Label(peakframe, text='', width=3), tk.Label(peakframe, text='', width=8), tk.Label(peakframe, text='', width=8), tk.Label(peakframe, text='', width=8), tk.Label(peakframe, text='', width=8)] for nnn in range(7)]
+
+            for nrow, row in enumerate(self._structure):
+                for nitem, item in enumerate(row):
+                    item.grid(row=nrow+2, column=nitem, sticky=tk.W)
+            
+            nn = 0
+            for cent, neta, uneta in zip(region.fit.centroids, region.fit.pks, region.fit.ur_pks):
+                self._structure[nn][0].configure(text=f'{nn+1})')
+                self._structure[nn][1].configure(text=f'{cent:.1f}')
+                self._structure[nn][2].configure(text=f'{elab._get_energy(cent):.1f}')
+                self._structure[nn][3].configure(text=f'{neta:.1f}')
+                self._structure[nn][4].configure(text=f'{uneta*100:.1f}')
+                nn += 1
+
+            peakframe.pack(anchor=tk.NW)
+
+            showfit.grid(row=0, column=0, sticky=tk.NSEW, padx=5, pady=5)
+            showparams.grid(row=0, column=1, sticky=tk.NSEW, padx=5, pady=5)
+            self.hintlabel.grid(row=1, column=0, columnspan=2, sticky=tk.W)
+
+            self._selectedfit_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._change_fit_selection(_elaborationwindow, idx))
+
+        def _overallview(self, region, elab, baseprofile, parent):
+
+            if len(region._fits) > 1:
+                try:
+                    self.overall_window.focus()
+                except Exception:
+                    self.overall_window = tk.Toplevel(parent)
+                    self.overall_window.title('')
+                    self.overall_window.resizable(False, False)
+                    self._paint_window(region, elab, baseprofile)
+
+        def _info_text(self, region, elab):
+            spacing = (5, 10, 10, 12, 9, 10)
+            header = ('peak', 'centroid', 'E / keV', 'Np / 1', 'ur(Np)', 'ΔNp', 'fit')
+
+            lines = [f'{header[0].ljust(spacing[0])}{header[1].rjust(spacing[1])}{header[2].rjust(spacing[2])}{header[3].rjust(spacing[3])}{header[4].rjust(spacing[4])}{header[5].rjust(spacing[5])}  {header[6]}']
+            for _idx in range(len(region.fit._PEAK)):
+                _pid = f'{_idx+1})'
+                ref_np = region._fits[self.permanent_idx].pks[_idx]
+                for _nn, ov_fit in enumerate(region._fits):
+                    if _nn == self.permanent_idx:
+                        _delta = '*'
+                    else:
+                        _delta = f'{(ov_fit.pks[_idx]-ref_np)/ref_np*100:.1f} %'
+                    relp = f'{format(ov_fit.ur_pks[_idx]*100,'.1f')} %'
+                    lines.append(f'{_pid.ljust(spacing[0])}{format(ov_fit.centroids[_idx],'.1f').rjust(spacing[1])}{format(elab._get_energy(ov_fit.centroids[_idx]),'.1f').rjust(spacing[2])}{format(ov_fit.pks[_idx],'.1f').rjust(spacing[3])}{relp.rjust(spacing[4])}{_delta.rjust(spacing[5])}  {ov_fit.name}')
+                lines.append('')
+
+            return lines
+
+        def _draw_plot(self, region, elab, basecounts):#
+            self.ov_ax.clear()
+
+            bar_opts = {'width':1.0, 'align':'center', 'alpha':0.35, 'facecolor':'#011f4b', 'linewidth':0}
+            plot_opts = {'linestyle':'-', 'linewidth':1., 'color':'k'}
+            ref_plot_opts = {'linestyle':'-', 'linewidth':2., 'color':'r'}
+            pointplot_opts = {'linestyle':'', 'marker':'o', 'markerfacecolor':'k', 'markersize':3., 'color':'k', 'elinewidth':0.5}
+            ref_pointplot_opts = {'linestyle':'', 'marker':'o', 'markerfacecolor':'r', 'markersize':3., 'color':'k', 'elinewidth':0.5}
+            #singleplots_opts = {'linestyle':'--', 'linewidth':1.0, 'color':'k'}
+            #bkg_opts = {'linestyle':'-', 'linewidth':2, 'color':'g'}
+            res_opts = {'marker':'s', 'markersize':3, 'markerfacecolor':'w', 'markeredgewidth':0.5, 'markeredgecolor':'k', 'linestyle':'--', 'linewidth':1., 'color':'k'}
+            ref_res_opts = {'marker':'o', 'markersize':4, 'markerfacecolor':'k', 'markeredgewidth':0.5, 'markeredgecolor':'k', 'linestyle':'--', 'linewidth':2., 'color':'r'}
+            hlines_opts = {'linewidth':1.5, 'alpha':0.55, 'color':'#011f4b', 'linestyle':'-'}
+            #hlines2_opts = {'linewidth':1.0, 'alpha':0.55, 'color':'k', 'linestyle':'--'}
+            other_bar_opts = {'width':0.85, 'align':'center', 'alpha':0.55, 'facecolor':'#011f4b', 'linewidth':0, 'error_kw':{'ecolor':"#000000",'elinewidth':1}}
+            ref_other_bar_opts = {'width':0.85, 'align':'center', 'alpha':0.55, 'facecolor':"#af1d1d", 'linewidth':0, 'error_kw':{'ecolor':"#000000",'elinewidth':2}}
+
+            try:
+                hh = len(self._fit_data)
+            except (AttributeError, TypeError):
+                self._fit_data = []
+            else:
+                for _ in range(hh):
+                    self._fit_data.pop()
+
+            if self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][0]:#'fit profile'
+                xx = np.arange(region.low_limit, region.high_limit+1)
+                self.ov_ax.bar(xx, basecounts, **bar_opts)
+
+                xfit = np.linspace(region.low_limit, region.high_limit+1, num=150, endpoint=True)
+
+                for ov_fit in region._fits:
+                    _fitline = self.ov_ax.plot(xfit, ov_fit._draw_total(xfit), **plot_opts)
+                    self._fit_data.append(_fitline[0])
+
+                self._fit_data[self.permanent_idx].set_color(ref_plot_opts['color'])
+                self._fit_data[self.permanent_idx].set_linewidth(ref_plot_opts['linewidth'])
+
+                self.ov_ax.ticklabel_format(axis='y', style='sci', scilimits=(-4,4), useMathText=True)
+
+                self.ov_ax.set_xlim(region.low_limit, region.high_limit)
+                self.ov_ax.set_ylabel(r'$counts$ / 1')
+                self.ov_ax.set_xlabel(r'$channel$ / 1')
+
+            elif self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][1]:#'relative residuals'
+                xx = np.arange(region.low_limit, region.high_limit+1)
+                self.ov_ax.axhline(0, 0, 1, **hlines_opts)
+
+                for ov_fit in region._fits:
+                    _fitline = self.ov_ax.plot(xx, ov_fit.fvec, **res_opts)
+                    self._fit_data.append(_fitline[0])
+
+                self._fit_data[self.permanent_idx].set_color(ref_res_opts['color'])
+                self._fit_data[self.permanent_idx].set_linewidth(ref_res_opts['linewidth'])
+                self._fit_data[self.permanent_idx].set_marker(ref_res_opts['marker'])
+                self._fit_data[self.permanent_idx].set_markersize(ref_res_opts['markersize'])
+                self._fit_data[self.permanent_idx].set_markerfacecolor(ref_res_opts['markerfacecolor'])
+
+                self.ov_ax.set_xlim(region.low_limit, region.high_limit)
+                self.ov_ax.set_ylim(-5, 5)
+                self.ov_ax.set_ylabel(r'$rel$ $residuals$ / $\sigma$')
+                self.ov_ax.set_xlabel(r'$channel$ / 1')
+
+            elif self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][2]:#'net areas'
+
+                reference = region._fits[self.permanent_idx].pks
+                _labels = ('1)', '2)', '3)', '4)', '5)','6)', '7)', '8)', '9)', '10)')
+
+                for _nn, ov_fit in enumerate(region._fits):
+                    xx = [_nn + (_idx * (len(ov_fit.pks)+1)) for _idx in range(len(ov_fit.pks))]
+                    print(xx)
+                    std_unc = ov_fit.pks * ov_fit.ur_pks
+                    _fitline = self.ov_ax.errorbar(xx, ov_fit.pks/reference, yerr=2*std_unc/reference, **pointplot_opts)
+                    #_fitline = self.ov_ax.bar(xx, ov_fit.pks/reference, yerr=2*std_unc/reference, **other_bar_opts)
+                    self._fit_data.append(_fitline)
+                    if _nn == self.permanent_idx:
+                        self._fit_data[self.permanent_idx].lines[0].set_markerfacecolor(ref_pointplot_opts['markerfacecolor'])
+
+                _ticks = [(len(region._fits)-1)/2 + (_idx * (len(reference)+1)) for _idx in range(len(reference))]
+                print('TICKS', _ticks)
+
+                self.ov_ax.set_xticks(_ticks)
+                self.ov_ax.set_xticklabels(_labels[:len(reference)])
+
+                #self.ov_ax.set_xlim(region.low_limit, region.high_limit)
+                #self.ov_ax.set_ylim(-5, 5)
+                self.ov_ax.set_ylabel(r'$norm$ $n_\mathrm{p}$ / $1$')
+                self.ov_ax.set_xlabel(r'$peak$')
+
+            elif self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][3]:#'chi-square'
+                pass
+
+
+            self.ov_figure.tight_layout()
+            self.ov_canvas.draw()
+
+            #self.std_uncs, self.fvec, self.ssum, self.sqsum, self.chisq, self.centroids, self.pks, self.ur_pks
+
+        def _paint_window(self, region, elab, baseprofile):
+
+            self.permanent_idx = region._fits.index(region.fit)
+
+            graphic_frame = tk.LabelFrame(self.overall_window, labelwidget=tk.Label(self.overall_window, text='graphical overview'), relief='solid', bd=2, padx=4, pady=4)
+
+            _CB_values = ('fit profile', 'relative residuals', 'net areas')
+
+            self._ov_selectedfit_CB = gui_things.Combobox(graphic_frame, width=30, values=_CB_values, state='readonly')
+            self._ov_selectedfit_CB.set(_CB_values[0])
+            self._ov_selectedfit_CB.grid(row=0, column=0, sticky=tk.NW)
+
+            self.ov_figure = Figure(figsize=(6.5, 3.5))
+            self.ov_figure.patch.set_alpha(0.0)
+            self.ov_ax = self.ov_figure.subplots(1,1)
+            Figur = tk.Frame(graphic_frame)
+            Figur.grid(row=1, column=0, sticky=tk.NSEW)
+            self.ov_canvas = FigureCanvasTkAgg(self.ov_figure, master=Figur)
+            self.ov_figure.tight_layout()
+            self.ov_canvas.draw()
+            self.ov_canvas.get_tk_widget().configure(background=self.overall_window.cget('bg'))
+            self.ov_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+            self.ov_fits_LB = gui_things.ScrollableListbox(graphic_frame, width=30, height=10, data=[item_fit.name for item_fit in region._fits])
+            self.ov_fits_LB.grid(row=1, column=1, padx=5, sticky=tk.NS)
+
+            graphic_frame.grid(row=0, column=0, padx=5, pady=5, sticky=tk.NW)
+
+            text_frame = tk.LabelFrame(self.overall_window, labelwidget=tk.Label(self.overall_window, text='textual overview'), relief='solid', bd=2, padx=4, pady=4)
+
+            lines = self._info_text(region, elab)
+
+            self.line_ST = gui_things.ScrollableText(text_frame, width=60, height=12, data='\n'.join(lines))
+            self.line_ST.pack(anchor=tk.NW, fill=tk.X)
+
+            text_frame.grid(row=1, column=0, padx=5, pady=5, sticky=tk.EW)
+
+            self._draw_plot(region, elab, baseprofile)
+
+            self.ov_fits_LB.listbox.activate(self.permanent_idx)
+            self.ov_fits_LB.listbox.yview(self.permanent_idx)
+
+            self.ov_fits_LB.listbox.bind('<Double-Button-1>', lambda e='<Double-Button-1>': self._change_view_overview_item(region, elab))
+            self._ov_selectedfit_CB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>' : self._change_view_overview_mode(region, elab, baseprofile))
+
+        def _change_view_overview_mode(self, region, elab, basecounts):
+            self._draw_plot(region, elab, basecounts)
+
+        def _change_view_overview_item(self, region, elab):
+            self.permanent_idx = self.ov_fits_LB.listbox.curselection()[0]
+
+            bar_opts = {'width':1.0, 'align':'center', 'alpha':0.35, 'facecolor':'#011f4b', 'linewidth':0}
+            plot_opts = {'linestyle':'-', 'linewidth':1., 'color':'k'}
+            ref_plot_opts = {'linestyle':'-', 'linewidth':2., 'color':'r'}
+            #singleplots_opts = {'linestyle':'--', 'linewidth':1.0, 'color':'k'}
+            #bkg_opts = {'linestyle':'-', 'linewidth':2, 'color':'g'}
+            res_opts = {'marker':'s', 'markersize':3, 'markerfacecolor':'w', 'markeredgewidth':0.5, 'markeredgecolor':'k', 'linestyle':'--', 'linewidth':1., 'color':'k'}
+            ref_res_opts = {'marker':'o', 'markersize':4, 'markerfacecolor':'k', 'markeredgewidth':0.5, 'markeredgecolor':'k', 'linestyle':'--', 'linewidth':2., 'color':'r'}
+            #hlines_opts = {'linewidth':1.5, 'alpha':0.55, 'color':'#011f4b', 'linestyle':'-'}
+            #hlines2_opts = {'linewidth':1.0, 'alpha':0.55, 'color':'k', 'linestyle':'--'}
+
+            if self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][0]:#'fit profile'
+
+                for _nn, vw_fit in enumerate(self._fit_data):
+                    if _nn == self.permanent_idx:
+                        vw_fit.set_color(ref_plot_opts['color'])
+                        vw_fit.set_linewidth(ref_plot_opts['linewidth'])
+                    else:
+                        vw_fit.set_color(plot_opts['color'])
+                        vw_fit.set_linewidth(plot_opts['linewidth'])
+
+            elif self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][1]:#'relative residuals'
+
+                for _nn, vw_fit in enumerate(self._fit_data):
+                    if _nn == self.permanent_idx:
+                        vw_fit.set_color(ref_res_opts['color'])
+                        vw_fit.set_linewidth(ref_res_opts['linewidth'])
+                        vw_fit.set_marker(ref_res_opts['marker'])
+                        vw_fit.set_markersize(ref_res_opts['markersize'])
+                        vw_fit.set_markerfacecolor(ref_res_opts['markerfacecolor'])
+                    else:
+                        vw_fit.set_color(res_opts['color'])
+                        vw_fit.set_linewidth(res_opts['linewidth'])
+                        vw_fit.set_marker(res_opts['marker'])
+                        vw_fit.set_markersize(res_opts['markersize'])
+                        vw_fit.set_markerfacecolor(res_opts['markerfacecolor'])
+
+            elif self._ov_selectedfit_CB.get() == self._ov_selectedfit_CB['values'][2]:#'net areas'
+                pass
+
+            self.ov_canvas.draw()
+
+            lines = self._info_text(region, elab)
+            self.line_ST._update('\n'.join(lines))
+
+        def _change_fit_selection(self, _elaborationwindow, idx):
+            pidx = self._selectedfit_CB.current()
+
+            region = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]
+            elab = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration
+
+            _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx].fit = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]._select_fit(pidx)
+
+            xfit = np.linspace(region.low_limit, region.high_limit+1, num=150, endpoint=True)
+            self._fitline.set_ydata(region.fit._draw_total(xfit))
+            self._bkgline.set_ydata(region.fit._draw_background(xfit))
+            partials = region.fit._draw_partials(xfit)
+            for _nn, item in enumerate(partials):
+                self._fitsinglelines[_nn].set_ydata(item)
+            self._resline.set_ydata(region.fit.fvec)
+            self.canvas.draw()
+
+            self.CHISQ.configure(text=f'chi-square: {region.fit.chisq:.3f}')
+            self.SR1.configure(text=f'sum of residuals: {region.fit.ssum:.3f}')
+            self.SSR2.configure(text=f'sum of squared residuals: {region.fit.sqsum:.3f}')
+
+            self._clean_structure()
+
+            nn = 0
+            for cent, neta, uneta in zip(region.fit.centroids, region.fit.pks, region.fit.ur_pks):
+                self._structure[nn][0].configure(text=f'{nn+1})')
+                self._structure[nn][1].configure(text=f'{cent:.1f}')
+                self._structure[nn][2].configure(text=f'{elab._get_energy(cent):.1f}')
+                self._structure[nn][3].configure(text=f'{neta:.1f}')
+                self._structure[nn][4].configure(text=f'{uneta*100:.1f}')
+                nn += 1
+
+        def _clean_structure(self):
+            for row in self._structure:
+                for item in row:
+                    item.configure(text='')
+
+        def do_things(self, _elaborationwindow, idx, parent):
+
+            hlf = len(_elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]._fits)
+            for nn in range(hlf):
+                _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]._fits.pop()
+
+            _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx].fit = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]._select_fit()
+
+            _elaborationwindow.regionlist_LB._colored_update([True if R0.fit is not None else False for R0 in _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions])
+
+            parent.destroy()
+
+        def devoile_parameters(self, _elaborationwindow, idx, parent):
+            region = _elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.regions[idx]#._fits
+
+            region_header = [f'REGION: {region.low_limit}-{region.high_limit} ({region.high_limit - region.low_limit + 1} channels)\nCALIBRATION: {_elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration.calname}\nN OF PEAKS: {len(region.centroids)}\n']
+
+            spacing = (20, 12, 12, 10, 25)
+            fit_header = [f"SELECTED FIT: {region.fit}", f'{"PARAMETER (PEAK)".ljust(spacing[0])}{"VALUE".rjust(spacing[1])}{"STD UNC".rjust(spacing[2])}{"REL UNC".rjust(spacing[3])}{"  BOUNDARIES".ljust(spacing[4])}']
+
+            for _par, _value, _stdunc, _lowB, _highB in zip(region.fit._parameter_descriptor, region.fit.coeff, region.fit.std_uncs, region.fit.BOUNDS[0], region.fit.BOUNDS[1]):
+                relun = np.abs(_stdunc/_value)
+                if relun > 10:
+                    relun = '>1000%'
+                else:
+                    relun = f'{np.abs(_stdunc/_value)*100:.2f}%'
+                fit_header.append(f"{_par.ljust(spacing[0])}{format(_value,".3e").rjust(spacing[1])}{format(_stdunc,".1e").rjust(spacing[2])}{relun.rjust(spacing[3])}  ({_lowB:.2f}, {_highB:.2f})")
+
+            pspacing = (3, 10, 10, 13, 13, 13)
+            peak_detail = ['\nPEAK DETAIL', f'{"#".ljust(pspacing[0])}{"CHANNEL".rjust(pspacing[1])}{"E / keV".rjust(pspacing[2])}{"AREA / 1".rjust(pspacing[3])}{"u(AREA) / 1".rjust(pspacing[4])}{"u(AREA) / %".rjust(pspacing[5])}']
+
+            nn = 0
+            for cent, neta, uneta in zip(region.fit.centroids, region.fit.pks, region.fit.ur_pks):
+                peak_detail.append(f'{format(nn+1,"d").ljust(pspacing[0])}{format(cent,".1f").rjust(pspacing[1])}{format(_elaborationwindow.elabelaboration_list[_elaborationwindow.spectrum_index].elaboration._get_energy(cent),".1f").rjust(pspacing[2])}{format(neta,".1f").rjust(pspacing[3])}{format(uneta*neta,".1f").rjust(pspacing[4])}{format(uneta*100,".1f").rjust(pspacing[5])}')
+                nn += 1
+
+            fit_checks = ['\nFIT CHECKS', f'EVALUATED CHI_SQ: {region.fit.chisq:.3f}', f"minimum allowed net area: {region.checks['min_netarea']}", f"maximum allowed statistical peak uncertainty: {region.checks['max_allowed_unc']} %", f"maximum allowed centroid uncertainty: {region.checks['max_allowed_centroid_unc']} channels", f"maximum allowed reduced chi squared: {region.checks['max_allowed_chisq']}", f"allow left skew of peak: {region.peak_kwargs['left_skew']}", f"allow right skew of peak: {region.peak_kwargs['right_skew']}", f"allow slope of background: {region.peak_kwargs['slope']}", f"allow step of background: {region.peak_kwargs['step']}"]
+
+            ttext = region_header + fit_header + peak_detail + fit_checks
+
+            TLT = tk.Toplevel(parent)
+            TLT.title(f'fit info for region: {region.low_limit}-{region.high_limit}')
+            TLT.resizable(False, False)
+            gui_things.ScrollableText(TLT, width=85, height=30, data='\n'.join(ttext)).pack(anchor=tk.NW, padx=5, pady=5)
+
+
 class DatabaseWindow:
     """Class for the Databases window of the main menu"""
     def __init__(self, parent, M):
@@ -609,6 +3246,13 @@ class DatabaseWindow:
         B_preset.grid(row=0, column=clm)
         B_preset.image = logo_preset
 
+        clm += 1
+        label_title = 'search fitting regions database'
+        logo_regions = tk.PhotoImage(data=gui_things.PL_frame_peak)
+        B_regions = gui_things.Button(buttons_frame, image=logo_regions, hint=label_title, hint_destination=M.hintlabel, command=lambda l_title=label_title: self.go_to_fittingregionsdatabase(work_frame, M, l_title))
+        B_regions.grid(row=0, column=clm)
+        B_regions.image = logo_regions
+
         buttons_frame.grid(row=2, column=0, sticky=tk.W)
         work_frame.grid(row=3, column=0, columnspan=10, sticky=tk.EW, pady=5)
 
@@ -639,6 +3283,10 @@ class DatabaseWindow:
         clear_window(parent)
         PresetsdatabaseWindow(parent, M, title)
 
+    def go_to_fittingregionsdatabase(self, parent, M, title):
+        clear_window(parent)
+        FittingregionsdatabaseWindow(parent, M, title)
+
     def go_to_k0database(self, parent, M, title):
         clear_window(parent)
         k0databaseWindow(parent, M, title)
@@ -654,6 +3302,102 @@ class DatabaseWindow:
     def go_back(self, parent, M):
         clear_window(parent)
         WelcomeWindow(parent, M)
+
+
+class FittingregionsdatabaseWindow:
+    """Subwindow Fitting regions of the Databases window"""
+    def __init__(self, parent, M, title):
+        m_frame = tk.LabelFrame(parent, labelwidget=tk.Label(parent, text=title), relief='solid', bd=2, padx=4, pady=4)
+        tk.Label(m_frame, text='currently available fitting regions', anchor=tk.W).pack(anchor=tk.W)
+
+        fregions_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.reg')]
+
+        self.FTR_LB = gui_things.ScrollableListbox(m_frame, width=45, height=15, data=fregions_list)
+        self.FTR_LB.pack(expand=True, fill=tk.X)
+
+        f_buttons = tk.Frame(m_frame)
+
+        logo_viewregioninfo = tk.PhotoImage(data=gui_things.PL_infopeak)
+        B_viewregioninfo = gui_things.Button(f_buttons, image=logo_viewregioninfo, hint='show info about fitting regions', hint_destination=M.hintlabel, command=lambda : self.view_regioninfo(m_frame, M))
+        B_viewregioninfo.pack(side=tk.LEFT)
+        B_viewregioninfo.image = logo_viewregioninfo
+
+        logo_delete_region = tk.PhotoImage(data=gui_things.PL_none)
+        B_delete_region = gui_things.Button(f_buttons, image=logo_delete_region, hint='delete selected fitting regions', hint_destination=M.hintlabel, command=lambda : self.delete_region(m_frame, M))
+        B_delete_region.pack(side=tk.LEFT)
+        B_delete_region.image = logo_delete_region
+        
+        logo_delete_allregions = tk.PhotoImage(data=gui_things.PL_letter_forall)
+        B_delete_allregions = gui_things.Button(f_buttons, image=logo_delete_allregions, hint='delete all fitting regions entries', hint_destination=M.hintlabel, command=lambda : self.delete_allregions(m_frame, M))
+        B_delete_allregions.pack(side=tk.LEFT)
+        B_delete_allregions.image = logo_delete_allregions
+
+        f_buttons.pack(anchor=tk.W)
+
+        m_frame.pack(padx=5, pady=5)
+
+    def view_regioninfo(self, parent, M):
+        presetname = self.FTR_LB.get_selection()
+
+        if presetname is not None:
+            reginfo = naaobject._call_database(presetname,'presets','reg')
+
+            RI = tk.Toplevel(parent)
+            RI.title(f'{reginfo.name}')
+            RI.resizable(False, False)
+
+            headerl = tk.Frame(RI)
+            tk.Label(headerl, text='Calibration adopted:', anchor=tk.NW).pack(side=tk.LEFT)
+            tk.Label(headerl, text=f'{reginfo.calname}', anchor=tk.NW).pack(side=tk.LEFT, padx=10)
+            headerl.grid(row=0, column=0, sticky=tk.W, columnspan=2)
+
+            tk.Frame(RI).grid(row=1, column=0, pady=5)
+
+            tk.Label(RI, text='REGIONS', anchor=tk.NW).grid(row=2, column=0, sticky=tk.W)
+            _rw = 3
+
+            lenghs = (20, 20)
+
+            lines = [f"{'Channel limits'.ljust(lenghs[0])}{'Centroids'.ljust(lenghs[-1])}"]
+
+            for (_ll, _hl, _chs) in reginfo.data_reg:
+                new_line = str.ljust(f'{_ll} - {_hl}',lenghs[0])
+                _centrs = ', '.join([f"{int(lecentr)}" for lecentr in _chs])
+                if len(_centrs) > lenghs[-1]:
+                    _centrs = _centrs[:lenghs[-1]-3] + '..'
+                lines.append(new_line + _centrs)
+
+            gui_things.ScrollableText(RI, width=np.sum(lenghs), height=12, data='\n'.join(lines)).grid(row=_rw, column=0, columnspan=2)
+
+            tk.Frame(RI).grid(row=_rw+1, column=0, pady=5)
+
+    def delete_region(self, parent, M):
+        """Delete fitting regions selected from the list"""
+        presetname = self.FTR_LB.get_selection()
+
+        if presetname is not None:
+            if messagebox.askyesno(title='Delete fitting regions', message=f'\nAre you sure to delete fitting region {presetname}?\n', parent=parent):
+                os.remove(os.path.join(os.path.join('data', 'presets'),f'{presetname}.reg'))
+
+                fregions_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.reg')]
+                self.FTR_LB._update(fregions_list)
+                M.hintlabel.configure(text=f'preset {presetname} deleted')
+        else:
+            M.hintlabel.configure(text='no preset is selected')
+
+    def delete_allregions(self, parent, M):
+        """Delete all regions from the list"""
+
+        if self.FTR_LB.listbox.size() > 0:
+            if messagebox.askyesno(title='Delete fitting regions', message=f'\nAre you sure to delete all fitting regions?\n', parent=parent):
+                for item in self.FTR_LB.listbox.get(0, tk.END):
+                    os.remove(os.path.join(os.path.join('data', 'presets'),f'{item}.reg'))
+
+                fregions_list = [os.path.splitext(filename)[0] for filename in os.listdir(os.path.join('data', 'presets')) if filename.lower().endswith('.reg')]
+                self.FTR_LB._update(fregions_list)
+                M.hintlabel.configure(text='all fitting regions deleted')
+        else:
+            M.hintlabel.configure(text='no fitting regions')
 
 
 class PresetsdatabaseWindow:
@@ -1428,7 +4172,7 @@ class DetectorCharacterizationdatabaseWindow:
         B_openspectrum.image = logo_openspectrum
 
         logo_deletespectrum = tk.PhotoImage(data=gui_things.PL_none)
-        B_deletespectrum = gui_things.Button(buttons_frame, image=logo_deletespectrum, hint='delete selected spectrum', hint_destination=hintlabel, command=lambda : None)
+        B_deletespectrum = gui_things.Button(buttons_frame, image=logo_deletespectrum, hint='delete selected spectrum', hint_destination=hintlabel, command=lambda : self.delete_spectrum(self.detectorcharacterizationmodify_window))
         B_deletespectrum.pack(side=tk.LEFT)
         B_deletespectrum.image = logo_deletespectrum
 
@@ -2220,7 +4964,7 @@ class DetectorCharacterizationdatabaseWindow:
             database['E'] = database['E'].astype(float)
         else:
             database = None
-        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))
+        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'),('INAA-INRIM spectrum file','*.spa'))
         limit_s = M.settings.get('calibs statistical uncertainty limit')
         try:
             output = tuple(askopenfilenames(parent=self.detectorcharacterizationmodify_window, title=f'Recall characterization spectra',filetypes=filetypes))
@@ -2259,7 +5003,7 @@ class DetectorCharacterizationdatabaseWindow:
 
         def check_function(string):
             response = True
-            chars = set("""*"?\/|[]{}""")
+            chars = set(r"""*"?\/|[]{}""")
             if string.replace(' ','') == '' or any((c in chars) for c in string):
                 response = False
             return response
@@ -2360,7 +5104,7 @@ class DetectorCharacterizationdatabaseWindow:
 
     def select_background(self, parent):
         """Recall spectra files to adopt as background for PT evaluation"""
-        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))
+        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'),('INAA-INRIM spectrum file','*.spa'))
         limit_s = 40
         try:
             filename = askopenfilename(parent=parent, title=f'Recall background spectrum',filetypes=filetypes)
@@ -2413,6 +5157,26 @@ class DetectorCharacterizationdatabaseWindow:
     def select_detector(self):
         """Update info related to the selected detector"""
         self.temporary_detector = naaobject.Detector(f'{self.detector_name_E.get()}.dec')
+
+    def delete_spectrum(self, parent):
+        """Delete selected characterization spectrum"""
+        try:
+            idx = self.spectra_LB.curselection()[0]
+        except IndexError:
+            if self.spectra_LB.listbox.index("end") > 0:
+                idx = 0
+            else:
+                idx = None
+        if idx is not None:
+            if self.peaklist_window is not None:
+                try:
+                    self.peaklist_window.destroy()
+                except:
+                    pass
+
+            if messagebox.askyesno(title='Delete characterization spectrum', message=f'\nAre you sure to delete\nthe selected spectrum?\n', parent=parent):
+                self.temporary_positions[self.positions_CB.get()].spectra.pop(idx)
+                self._update_spectralist()
 
     def characterization_peaklist(self, M):
         """Open peaklist window for characterization spectra"""
@@ -2631,7 +5395,7 @@ class CharacterizationPeaklistWindow:
                 #limits
                 self.SpectrumPlotSubwindow.ax.set_xlim(*xlimits)
                 self.SpectrumPlotSubwindow.ax.set_ylim(*ylimits)
-                self.SpectrumPlotSubwindow.ax.set_yscale('log', nonposy='clip')
+                self.SpectrumPlotSubwindow.ax.set_yscale('log', nonpositive='clip')
 
                 self.SpectrumPlotSubwindow.ax.set_ylabel('counts')
                 self.SpectrumPlotSubwindow.ax.set_xlabel('channel')
@@ -4609,7 +7373,7 @@ SPECTRA
 
     def open_background(self, parent, M, label):
         """Recall spectrum as background"""
-        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))
+        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'),('INAA-INRIM spectrum file','*.spa'))
         limit_s = M.settings.get('sample statistical uncertainty limit')
         try:
             filename = askopenfilename(parent=M, title=f'Recall background spectrum',filetypes=filetypes)
@@ -4811,7 +7575,7 @@ SPECTRA
                     self.secondary_window.destroy()
             except Exception:
                 self.secondary_window.destroy()
-        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'))#,('HyperLab ASC file','*.asc'),('CHN spectrum file','*.chn'))
+        filetypes = (('HyperLab peak list','*.csv'),('GammaVision report file','*.rpt'),('INAA-INRIM spectrum file','*.spa'))
         limit_s = M.settings.get('sample statistical uncertainty limit')
         try:
             output = tuple(askopenfilenames(parent=M, title=f'Recall spectra',filetypes=filetypes))
@@ -5924,7 +8688,7 @@ class PeaklistWindow:
                 #limits
                 self.SpectrumPlotSubwindow.ax.set_xlim(*xlimits)
                 self.SpectrumPlotSubwindow.ax.set_ylim(*ylimits)
-                self.SpectrumPlotSubwindow.ax.set_yscale('log', nonposy='clip')
+                self.SpectrumPlotSubwindow.ax.set_yscale('log', nonpositive='clip')
 
                 self.SpectrumPlotSubwindow.ax.set_ylabel('counts')
                 self.SpectrumPlotSubwindow.ax.set_xlabel('channel')
@@ -6155,18 +8919,21 @@ class PeaklistWindow:
 
             self.sampleCB.bind('<<ComboboxSelected>>', lambda e='<<ComboboxSelected>>': self.select_sampleid(M))
 
-    def _merge_elementsets(self, preset=(), elements=None):
+    def _merge_elementsets(self, preset=(), elements=None, strict=False):
         """Merge set of elements with preset to find the intersection"""
         if elements is None:
             elements = ()
 
-        if elements == () and preset == ():
+        if tuple(elements) == () and preset == ():
             return None
-        elif elements == ():
+        elif tuple(elements) == ():
             return tuple(preset)
         elif preset == ():
             return tuple(elements)
-        result = set(preset).intersection(set(elements))
+        if strict:
+            result = set(preset).intersection(set(elements))
+        else:
+            result = set(preset).union(set(elements))
         return tuple(sorted(result))
 
     def _recall_preset(self, filename):
@@ -6183,20 +8950,37 @@ class PeaklistWindow:
             self.PeakInformationSubwindow = None
         except Exception:
             pass
-        #not that much options really, presets incoming
 
         sample = M.INAAnalysis.get_sample(M.INAAnalysis.spectra[self.index].sample)
 
+        strict = False
         if sample is not None:
             elements = sample.composition.certificate.keys()
+            strict = sample.sampletype == 'standard'
+            filtered_other_spectra = [spectrum for spectrum in M.INAAnalysis.spectra if spectrum!=M.INAAnalysis.spectra[self.index] and spectrum.sample == sample.name]
         else:
             elements = None
-        
-        preset = self._recall_preset(self.presetCB.get())
-        elements = self._merge_elementsets(preset, elements)
+            filtered_other_spectra = ()
 
-        for nn, suspt in enumerate(M.INAAnalysis.spectra[self.index].suspected_peaks):
-            assignment = self.manage_assignment(M, nn, suspt, elements)
+        preset = self._recall_preset(self.presetCB.get())
+        elements = self._merge_elementsets(preset, elements, strict)
+
+        if M.INAAnalysis.irradiation is not None:
+            eitime = M.INAAnalysis.irradiation.datetime
+        else:
+            eitime = None
+
+        #print('OTHER OTHER SPECTRA', filtered_other_spectra)
+
+        if elements is not None and elements != ():
+            subdatabase_filter = M.INAAnalysis.k0_database['target'].isin(elements)
+            subdatabase = M.INAAnalysis.k0_database[subdatabase_filter]
+            M.INAAnalysis.spectra[self.index]._auto_filter_emission_database(M.INAAnalysis.characterization, subdatabase, end_of_irradiation_date=eitime, k=3, threshold=1E-6, other_spectra=filtered_other_spectra)
+        else:
+            M.INAAnalysis.spectra[self.index]._auto_filter_emission_database(M.INAAnalysis.characterization, M.INAAnalysis.k0_database, end_of_irradiation_date=eitime, k=3, threshold=1E-6, other_spectra=filtered_other_spectra)
+
+        for nn, (suspt, probs) in enumerate(zip(M.INAAnalysis.spectra[self.index].suspected_peaks, M.INAAnalysis.spectra[self.index].probability_peaks)):
+            assignment = self.manage_assignment(M, nn, suspt, probs, elements)
             M.INAAnalysis.spectra[self.index].assigned_peaks[nn] = assignment
             if assignment > -1:
                 self.tree.set(nn, column='emitter', value=M.INAAnalysis.spectra[self.index].suspected_peaks[nn][assignment].emission)
@@ -6213,24 +8997,16 @@ class PeaklistWindow:
         PIA.resizable(False, False)
         gui_things.ScrollableText(PIA, width=45, height=10, data=text).pack(anchor=tk.NW)
 
-    def manage_assignment(self, M, nn, suspt, elements=None):
+    def manage_assignment(self, M, nn, suspt, probs, elements=None):
         """Manage peak assignment"""
-        assignment = -1
-        if elements is not None:
-            check_composition = True
+        suggested_prob = -1
+
+        if len(suspt) == 0 or all(np.array(probs) < 0):
+            suggested_prob = -1
         else:
-            check_composition = False
+            suggested_prob = np.argmax(probs)
 
-        if len(suspt) == 1:
-            if check_composition:
-                if M.INAAnalysis.spectra[self.index].suspected_peaks[nn][0].target in elements:
-                    return self._check_overwrite(M, nn, 0)
-                return self._check_overwrite(M, nn, -1)
-            return self._check_overwrite(M, nn, 0)
-        elif len(suspt) > 1:
-            return self._check_overwrite(M, nn, M.INAAnalysis.spectra[self.index].assigned_peaks[nn])
-
-        return self._check_overwrite(M, nn, assignment)
+        return self._check_overwrite(M, nn, suggested_prob)
     
     def _check_overwrite(self, M, nn, assignment):
         """Check before overrinding peak assignment"""
@@ -7545,7 +10321,7 @@ class MeasurementSampleManagementWindow:
             self.unc_density_F.delete(0, tk.END)
             self.unc_density_F.insert(0, f'{udensity:.5f}')
         else:
-            hintlabel.configure(text='invalid density calcuated')
+            hintlabel.configure(text='invalid density calculated')
 
     def select_role(self):
         """Select role for sample"""
