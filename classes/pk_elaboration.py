@@ -68,12 +68,9 @@ class PeakFit:
         self.std_uncs, self.fvec, self.ssum, self.sqsum, self.chisq = self.metrics(X, Y)
 
         if self.intmsg != -1:
-            self.centroids = self._get_centroids()#np.array(self.coeff[1:2]) #BIG POINT HERE self._get_centroids()
-            self.ucentroids = self._get_ucentroids()#np.array(self.std_uncs[1:2]) #BIG POINT HERE self._get_ucentroids()
-            self.pks, self.ur_pks = self._calulate_peak_area(Region) #IT'S GOOD
-
-            print(self.centroids)
-            print(self.pks)
+            self.centroids = self._get_centroids()
+            self.ucentroids = self._get_ucentroids()
+            self.pks, self.ur_pks = self._calulate_peak_area(Region)
 
         else:
             self.centroids, self.pks, self.ur_pks = np.array([0.0]), np.array([0.0]), np.array([0.0])
